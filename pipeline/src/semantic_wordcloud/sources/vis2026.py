@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 
 from ..cached_http import CachedHttpClient
 from ..documents import Document
-from ..text_cleaning import markdown_to_text, normalize_whitespace
+from ..text_cleaning import drop_sections, markdown_to_text, normalize_whitespace
 
 PROGRAM_LISTING_URL = "https://ieeevis.org/year/2026/program/content/"
 PROGRAM_DETAIL_URL = "https://ieeevis.org/year/2026/program/content/{paper_id}"
@@ -154,6 +154,6 @@ def collect_website_pages(client: CachedHttpClient, selection_path: Path) -> lis
                 track=row["category"],
                 title=title_match.group(1) if title_match else row["path"],
                 url=SITE_PAGE_URL.format(path=row["path"].removesuffix(".md")),
-                text=markdown_to_text(markdown),
+                text=markdown_to_text(drop_sections(markdown, row["drop_sections"].split(";"))),
             ))
     return documents

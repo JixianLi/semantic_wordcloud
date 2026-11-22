@@ -4,7 +4,9 @@
   that loads one static HTML fragment per day; those, plus the posters page, list the sessions, and each session page
   lists its presentations (workshop papers appear only there). Each presentation's ICS export has its abstract, and
   config/sc26_presentation_types.tsv maps its ID prefix to a source (accepted_entries, keynote, excluded) and a track.
-- website: the WordPress REST API of sc26.supercomputing.org, filtered by config/sc26_website_pages.tsv.
+- website: the WordPress REST API of sc26.supercomputing.org, filtered by config/sc26_website_pages.tsv. The one page
+  in category "nre_demos" is a list of accepted Network Research Exhibition demos; it is split into one
+  accepted_entries document per demo instead.
 """
 
 import csv
@@ -17,7 +19,7 @@ from icalendar import Calendar
 
 from ..cached_http import CachedHttpClient
 from ..documents import Document
-from ..text_cleaning import html_to_text, normalize_whitespace, remove_urls_and_emails
+from ..text_cleaning import drop_sections, html_to_text, normalize_whitespace, remove_urls_and_emails, strip_heading_marks
 
 PROGRAM_HOST = "https://sc26.conference-program.com"
 DAY_FRAGMENT_URL = PROGRAM_HOST + "/wp-content/linklings_snippets/wp_program_view_all_2026-11-{day:02d}.txt"
@@ -28,6 +30,7 @@ PRESENTATION_URL = PROGRAM_HOST + "/presentation/?id={presentation_id}&sess={ses
 CALENDAR_URL = PROGRAM_HOST + "/wp-content/plugins/linklings_wp_program/get_cal/?id={session_id}--{presentation_id}"
 WEBSITE_API_URL = "https://sc26.supercomputing.org/wp-json/wp/v2/{kind}?per_page=100&page={page}"
 
+NRE_DEMO_MARKER = re.compile(r"^SC26-NRE-(\d+)")
 PRESENTATION_LINK = re.compile(r"[?&]id=([a-z_]+\d+)&(?:amp;)?sess=(sess\d+)")
 SESSION_LINK = re.compile(r"[?&]sess=(sess\d+)")
 PRESENTATION_PREFIX = re.compile(r"[a-z_]+?(?=\d)")
@@ -151,21 +154,53 @@ def fetch_website_items(client: CachedHttpClient) -> list[dict]:
 
 
 def collect_website_pages(client: CachedHttpClient, selection_path: Path) -> list[Document]:
-    if not selection_path.exists():
-        return []
     with selection_path.open() as file:
-        category_by_link = {row["link"]: row["category"] for row in csv.DictReader(file, delimiter="\t") if row["include"] == "yes"}
+        row_by_link = {row["link"]: row for row in csv.DictReader(file, delimiter="\t") if row["include"] == "yes"}
     documents = []
     for item in fetch_website_items(client):
-        if item["link"] not in category_by_link:
+        row = row_by_link.get(item["link"])
+        if row is None:
             continue
+        if row["category"] == "nre_demos":
+            documents.extend(split_nre_demos(item))
+            continue
+        marked_text = html_to_text(item["content"]["rendered"], mark_headings=True)
+        text = strip_heading_marks(drop_sections(marked_text, row["drop_sections"].split(";")))
         documents.append(Document(
             id=f"sc-web-{item['kind']}-{item['id']}",
             conference="sc",
             source="website",
-            track=category_by_link[item["link"]],
+            track=row["category"],
             title=html_to_text(item["title"]["rendered"]),
             url=item["link"],
-            text=remove_urls_and_emails(html_to_text(item["content"]["rendered"])),
+            text=remove_urls_and_emails(text),
+        ))
+    return documents
+
+
+def split_nre_demos(item: dict) -> list[Document]:
+    """The accepted-demos page repeats: "SC26-NRE-<n> PDF", the demo title in <strong>, a "<Org>, Booth #<n>" line,
+    then the abstract paragraphs. The intro before the first marker and the booth lines are dropped."""
+    paragraphs = [paragraph.get_text(" ", strip=True) for paragraph in BeautifulSoup(item["content"]["rendered"], "lxml").find_all("p")]
+    demos: list[tuple[str, list[str]]] = []
+    for paragraph in paragraphs:
+        marker = NRE_DEMO_MARKER.match(paragraph)
+        if marker:
+            demos.append((marker.group(1), []))
+        elif demos and paragraph and "Booth #" not in paragraph:
+            demos[-1][1].append(paragraph)
+    documents = []
+    for demo_number, demo_paragraphs in demos:
+        if not demo_paragraphs:
+            continue
+        title, abstract = demo_paragraphs[0], "\n\n".join(demo_paragraphs[1:])
+        documents.append(Document(
+            id=f"sc-nre{demo_number}",
+            conference="sc",
+            source="accepted_entries",
+            track="NRE Demo",
+            title=title,
+            url=item["link"],
+            text=remove_urls_and_emails(normalize_whitespace(f"{title}.\n\n{abstract}")),
         ))
     return documents
