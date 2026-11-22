@@ -1,4 +1,7 @@
-data/
+# Generated data is not committed; README.md, "Getting the data", rebuilds it.
+/data/
+web/public/data/
+
 node_modules/
 dist/
 .venv/
