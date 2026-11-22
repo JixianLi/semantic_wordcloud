@@ -1,0 +1,120 @@
+# Terms dropped before weighting, one lemma per line; a phrase containing any of them is dropped too.
+# Event vocabulary: words about the conference itself rather than what people talk about. Brown (1961) rates many
+# of them as rare, so the background IDF alone would push them up.
+attendee
+attend
+bof
+booth
+conference
+deadline
+keynote
+moderator
+panel
+panelist
+poster
+presentation
+presenter
+proceeding
+session
+speaker
+talk
+tutorial
+workshop
+exhibitor
+exhibition
+# Conference and society names
+acm
+ieee
+sigchi
+sighpc
+siggraph
+tvcg
+vgtc
+sc
+sc25
+sc26
+vis
+# Text-extraction and formatting debris
+et
+al
+e.g.
+i.e.
+etc
+pdf
+http
+https
+www
+# Deliberately NOT listed, because each is also a technical term: track (eye tracking), register/registration
+# (image registration), submit/submission (job submission), exhibit, chair, participant (user-study participants).
+# Submission and organizing process (call-for-participation pages). Stoplisting applies after phrases form, so the
+# technical phrases below survive as "+" exceptions.
+submission
+submit
+camera-ready
+notification
+email
+contact
+chairs
+chair
+pcs
+aoe
+faq
+website
+form
+upload
++job submission
++job submissions
+# Calendar words (not named-entity filtered any more: the filter misread too many technical words)
+january
+february
+march
+april
+may
+june
+july
+august
+september
+october
+november
+december
+jan
+feb
+mar
+apr
+jun
+jul
+aug
+sep
+sept
+oct
+nov
+dec
+monday
+tuesday
+wednesday
+thursday
+friday
+saturday
+sunday
+pm
+am
+# Event logistics and review process, from the second terms_report.md
+registration
++image registration
++point cloud registration
+convention center
+mccormick place
+qr code
+housing open date
+sign-up
+potential conflict
+close associate
+coi
+conflict of interest
+selection process
+application open
+program committee
+review process
+important date
+schedule
+update

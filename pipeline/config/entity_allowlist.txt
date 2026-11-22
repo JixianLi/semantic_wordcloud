@@ -1,0 +1,39 @@
+# Lemmas kept even when spaCy tags them as a person, place, nationality, date or time.
+# Filled from the "dropped as entity" list in terms_report.md.
+# Systems, tools and methods spaCy's small model tags as people or places (from the first terms_report.md).
+aurora
+frontier
+perlmutter
+fugaku
+el
+capitan
+slurm
+lustre
+fortran
+gaussian
+bayesian
+monte
+carlo
+spmv
+c++
+md
+gbps
+scinet
+lam
+# From the second terms_report.md
+morse
+hamiltonian
+lagrangian
+brownian
+jacobi
+slingshot
+blackwell
+apptainer
+charliecloud
+flang
+mapper
+hci
+qrmi
+olli
+amsc
+clinician
