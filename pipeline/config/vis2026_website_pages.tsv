@@ -1,0 +1,104 @@
+path	category	include	note
+404.md	misc	no	
+blog/2026-02-03-vis-2026-OPC-blog.md	review_process	no	program-committee process
+blog/2026-02-10-vis-2026-OPC-blog.md	review_process	no	program-committee process
+blog/2026-02-17-vis-2026-OPC-blog.md	review_process	no	program-committee process
+blog/2026-03-05-vis-2026-OPC-blog-space-in-papers.md	review_process	no	program-committee process
+blog/2026-06-03-vis-2026-GC-blog.md	logistics	no	satellite locations announcement
+blog/2026-06-8-vis-2026-VSC-blog.md	governance	no	
+blog/2026-09-25-vis-2026-workshops-speakers-blog.md	bios	no	workshop speaker bios only, no talk abstracts
+blog/2026-10-14-vis-2026-cluster-blog.md	content	yes	Cluster practitioners' summit program
+destination.md	logistics	no	
+governance/best-paper-process.md	governance	no	
+governance/bids.md	governance	no	
+governance/charter.md	governance	no	
+governance/coordination.md	governance	no	
+governance/generalChairs.md	governance	no	
+governance/restructuring.md	governance	no	
+governance/steering-committee.md	governance	no	
+governance/vis-governance-structure.md	governance	no	
+governance/vsc-mission-statement.md	governance	no	
+info/accessibility/attend.md	community	yes	accessibility services for attendees
+info/awards/best-paper-awards.md	awards	no	winner lists (names)
+info/awards/test-of-time-awards.md	awards	no	winner lists (names)
+info/awards/vgtc-awards.md	awards	no	winner lists (names)
+info/call-participation/accessible-pdf.md	community	yes	accessibility service for authors
+info/call-participation/area-model.md	content	yes	research area descriptions
+info/call-participation/call-for-participation.md	content	yes	
+info/call-participation/community.md	community	yes	
+info/call-participation/doctoral-colloquium.md	content	yes	
+info/call-participation/junior-reviewer-guide.md	community	yes	mentoring service
+info/call-participation/meetups.md	community	yes	
+info/call-participation/panels.md	content	yes	
+info/call-participation/paper-keywords.md	content	yes	keyword taxonomy
+info/call-participation/paper-submission-guidelines.md	review_process	no	
+info/call-participation/partnerships.md	review_process	no	TVCG/CG&A publication model
+info/call-participation/posters.md	content	yes	
+info/call-participation/review-instructions.md	review_process	no	
+info/call-participation/shortpapers.md	content	yes	
+info/call-participation/tutorials.md	content	yes	
+info/call-participation/visions.md	content	yes	
+info/call-participation/workshops.md	content	yes	
+info/committees/area-committee.md	committees	no	names
+info/committees/conference-committee.md	committees	no	names
+info/committees/program-committees.md	committees	no	names
+info/community/community.md	community	yes	
+info/community/vis-buddies.md	community	yes	
+info/contributing.md	misc	no	website contribution guide
+info/elections.md	governance	no	
+info/history.md	history	no	
+info/history/awards.md	history	no	
+info/history/best-paper-awards.md	history	no	
+info/history/keynote-capstone.md	history	no	
+info/history/test-of-time-awards.md	history	no	
+info/history/tutorial-keynote-capstone.md	history	no	
+info/history/tutorials.md	history	no	
+info/inclusion/coc-reporting-process.md	policy	no	code-of-conduct procedure
+info/inclusion/code-of-conduct.md	policy	no	
+info/inclusion/event-conduct-safety.md	policy	no	
+info/inclusion/inclusivity.md	community	yes	
+info/inclusion/open-conference.md	community	yes	
+info/inclusion/scholarship.md	community	yes	
+info/inclusion/viskids-child-care-grants.md	community	yes	
+info/inclusion/viskids.md	community	yes	
+info/invited-speakers/capstone-speaker.md	keynote	no	used as keynote source (abstract only)
+info/invited-speakers/keynote-speaker.md	keynote	no	used as keynote source (abstract only)
+info/invited-speakers/visions.md	keynote	no	used as keynote source (abstract only)
+info/meetups.md	community	yes	
+info/open-practices/arxiv-first-time-user.md	tool_howto	no	arXiv/Overleaf how-to; would inflate tool words
+info/open-practices/open-practices-arxiv.md	tool_howto	no	arXiv/Overleaf how-to; would inflate tool words
+info/open-practices/open-practices-faq.md	community	yes	open-practices service
+info/open-practices/open-practices.md	community	yes	open-practices service
+info/open-practices/overleaf-user.md	tool_howto	no	arXiv/Overleaf how-to; would inflate tool words
+info/open-practices/supplemental-material-faq.md	community	yes	open-practices service
+info/open-practices/updating-arxiv-post-publication.md	tool_howto	no	arXiv/Overleaf how-to; would inflate tool words
+info/open-practices/vis-specific-arxiv-recommendations.md	tool_howto	no	arXiv/Overleaf how-to; would inflate tool words
+info/plenary/townhall.md	governance	no	
+info/presenter-information/final-information-paper-authors.md	presenter_info	no	
+info/presenter-information/presenting-virtually.md	presenter_info	no	
+info/presenter-information/talk-guide.md	presenter_info	no	
+info/program/meetups.md	community	yes	
+info/program/posters.md	content	yes	
+info/program/week-at-a-glance.md	logistics	no	
+info/program/workshops.md	content	yes	workshop descriptions
+info/registration-and-travel/conference-registration.md	logistics	no	
+info/registration-and-travel/hotel-information.md	logistics	no	
+info/registration-and-travel/transportation.md	logistics	no	
+info/registration-and-travel/travel-information.md	logistics	no	
+info/registration-and-travel/visas.md	logistics	no	
+info/social-events/conference-dinner.md	social	no	
+info/social-events/oc-dinner.md	social	no	
+info/social-events/poster-session.md	social	no	
+info/social-events/visap-exhibition.md	content	yes	VIS Arts Program exhibition
+info/social-events/welcome-reception.md	social	no	
+info/vec-candidates.md	governance	no	
+info/visinpractice.md	content	yes	
+info/vsc-candidates.md	governance	no	
+program/all_events.md	listing	no	event listing, duplicates program
+program/awards.md	listing	no	
+program/speakers.md	listing	no	duplicates keynote pages
+satellites/index.md	logistics	no	
+satellites/paris.md	logistics	no	
+satellites/tianjin.md	logistics	no	
+supporters.md	sponsors	no	
+welcome.md	content	yes	conference scope statement

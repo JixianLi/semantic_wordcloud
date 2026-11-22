@@ -1,0 +1,24 @@
+prefix	source	track	note
+pap	accepted_entries	Paper	
+gb	accepted_entries	Gordon Bell Finalist	
+gbv	accepted_entries	Gordon Bell Finalist	second Gordon Bell series (climate prize, unverified)
+rpost	accepted_entries	Research Poster	
+src_post	accepted_entries	ACM SRC Poster	
+int_post	accepted_entries	Interactive e-Poster	
+drs	accepted_entries	Doctoral Showcase	
+wksp	accepted_entries	Workshop	the workshop's own description
+ws_	accepted_entries	Workshop Paper	all ws_<acronym> prefixes
+miscp	accepted_entries	Workshop Other	panels and talks inside workshops
+misc	accepted_entries	Workshop Other	mostly no abstract; kept when it has one
+tut	accepted_entries	Tutorial	
+pan	accepted_entries	Panel	
+bof	accepted_entries	Birds of a Feather	
+exforum	accepted_entries	Exhibitor Forum	
+art	accepted_entries	Art of HPC	
+artc	accepted_entries	Art of HPC	
+key	keynote	Keynote	
+inv	keynote	Invited Talk	
+hpcplen	keynote	HPC Unites Plenary	
+brea	excluded	Break	
+awd	excluded	Awards Ceremony	
+mtgt	excluded	Mentor Meeting	speaker bios, not content

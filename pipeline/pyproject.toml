@@ -1,0 +1,22 @@
+[project]
+name = "semantic-wordcloud"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jixian Li", email = "ljx.sci@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "httpx>=0.28.1",
+    "icalendar>=7.3.2",
+    "lxml>=6.1.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.0,<0.13.0"]
+build-backend = "uv_build"
+
+[project.scripts]
+collect-corpus = "semantic_wordcloud.collect_corpus:main"
