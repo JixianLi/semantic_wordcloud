@@ -21,6 +21,7 @@ It is 1 when the tokens only ever occur together and 0 when they co-occur by cha
 
 import json
 import math
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -37,6 +38,8 @@ MIN_PHRASE_NPMI = 0.3
 MIN_PHRASE_DOCUMENT_FREQUENCY = 3
 MIN_TERM_DOCUMENT_FREQUENCY = 2
 MIN_ENTITY_SHARE = 0.5
+MIN_REPEATED_SENTENCE_WORDS = 6
+NON_WORD = re.compile(r"\W+")
 MAX_TERMS_PER_DOCUMENT = 200
 NLTK_DATA_DIR = DATA_DIR / "external" / "nltk_data"
 TERM_TOKENS_PATH = DATA_DIR / "interim" / "term_tokens.jsonl"
@@ -51,7 +54,11 @@ def main() -> None:
     language = load_language()
 
     print("tokenizing corpus ...")
-    tokens_by_document = [word_tokens(doc) for doc in language.pipe((d.text for d in documents), batch_size=64)]
+    tokens_by_document, sentences_by_document = [], []
+    for doc in language.pipe((d.text for d in documents), batch_size=64):
+        tokens_by_document.append(word_tokens(doc))
+        sentences_by_document.append([sentence.text.strip() for sentence in doc.sents])
+    tokens_by_document = drop_repeated_sentences(tokens_by_document, sentences_by_document)
     lemma_by_lowercase_text = learn_lemmas(tokens_by_document)
     keyed_by_document = [[(token, term_key(token, lemma_by_lowercase_text)) for token in tokens] for tokens in tokens_by_document]
     name_keys = keys_mostly_used_as_names(keyed_by_document, entity_allowlist)
@@ -74,7 +81,7 @@ def main() -> None:
 
     weights_by_document = bm25_weights(term_sequences, idf)
     display_by_key = most_common_display(term_sequences)
-    write_term_tokens(documents, term_sequences, index_by_key)
+    write_term_tokens(documents, term_sequences, sentences_by_document, index_by_key)
     export_corpus(documents, vocabulary, display_by_key, idf, background_df, document_frequency, term_sequences,
                   weights_by_document, index_by_key)
     REPORT_PATH.write_text(terms_report(documents, vocabulary, display_by_key, background_df, weights_by_document,
@@ -87,6 +94,28 @@ class Term:
 
     def __init__(self, key: str, display: str, sentence: int):
         self.key, self.display, self.sentence = key, display, sentence
+
+
+def drop_repeated_sentences(tokens_by_document, sentences_by_document):
+    """Boilerplate: a sentence of MIN_REPEATED_SENTENCE_WORDS+ words that appears verbatim in several documents
+    (website pages repeat "A sample form can be viewed before signing in" 21 times, and the same conflict-of-interest
+    and AI-use policies) counts only in the first document that has it. Otherwise it inflates its terms' weights and
+    makes its words look related to each other."""
+    seen, dropped = set(), 0
+    filtered = []
+    for tokens, sentences in zip(tokens_by_document, sentences_by_document):
+        repeated = set()
+        for index_sentence, sentence in enumerate(sentences):
+            normalized = NON_WORD.sub(" ", sentence.lower()).strip()
+            if len(normalized.split()) < MIN_REPEATED_SENTENCE_WORDS:
+                continue
+            if normalized in seen:
+                repeated.add(index_sentence)
+            seen.add(normalized)
+        dropped += len(repeated)
+        filtered.append([token for token in tokens if token.sentence not in repeated])
+    print(f"{dropped} repeated sentences dropped")
+    return filtered
 
 
 def learn_lemmas(tokens_by_document) -> dict[str, str]:
@@ -242,12 +271,13 @@ def most_common_display(term_sequences) -> dict[str, str]:
     return display_by_key
 
 
-def write_term_tokens(documents, term_sequences, index_by_key) -> None:
-    """Per document, its term sequence as [term index, sentence index] pairs, for the semantics stage."""
+def write_term_tokens(documents, term_sequences, sentences_by_document, index_by_key) -> None:
+    """Per document, for the semantics stage: its term sequence as [term index, sentence index] pairs, and its
+    sentence texts (indexed by the same sentence index)."""
     with TERM_TOKENS_PATH.open("w") as file:
-        for document, sequence in zip(documents, term_sequences):
+        for document, sequence, sentences in zip(documents, term_sequences, sentences_by_document):
             pairs = [[index_by_key[term.key], term.sentence] for term in sequence]
-            file.write(json.dumps({"id": document.id, "terms": pairs}) + "\n")
+            file.write(json.dumps({"id": document.id, "terms": pairs, "sentences": sentences}, ensure_ascii=False) + "\n")
 
 
 def export_corpus(documents, vocabulary, display_by_key, idf, background_df, document_frequency, term_sequences,

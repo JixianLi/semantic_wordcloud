@@ -21,6 +21,7 @@ cd pipeline
 uv sync                     # Python 3.12, spaCy + en_core_web_sm, NLTK
 uv run collect-corpus       # 1. fetch and clean the corpus
 uv run build-terms          # 2. terms, phrases, BM25 weights, web export
+uv run build-semantics      # 3. term similarity (co-occurrence, contextual embedding)
 ```
 
 1. **`collect-corpus`** fetches the VIS 2026 program listing, the ieeevis.org website repo (GitHub, branch `vis2026`),
@@ -35,6 +36,9 @@ uv run build-terms          # 2. terms, phrases, BM25 weights, web export
      `data/interim/terms_report.md` (top terms, entity drops, Brown-unseen terms for review).
    - Takes about a minute. Stoplist and entity allowlist: `pipeline/config/stop_terms.txt`,
      `pipeline/config/entity_allowlist.txt`.
+3. **`build-semantics`** writes `web/public/data/neighbors.json` (about 2 MB): each term's nearest terms by
+   co-occurrence and by contextual embedding (`all-MiniLM-L6-v2`, downloaded from Hugging Face once, about 90 MB).
+   Takes about 10 seconds with an Apple GPU.
 
 The sources are public pages. Full text is limited to open-access preprints (not yet fetched). The app ships derived
 term statistics, titles and links, not abstracts or page text.
