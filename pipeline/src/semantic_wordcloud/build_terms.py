@@ -6,7 +6,7 @@ BM25 term weight (Robertson & Zaragoza 2009, "The Probabilistic Relevance Framew
     w(t, d) = idf_bg(t) · tf(t,d)·(k1 + 1) / (tf(t,d) + k1·(1 − b + b·|d|/avgdl))
     idf_bg(t) = ln((N_bg − df_bg(t) + 0.5) / (df_bg(t) + 0.5) + 1)
   tf(t,d)   occurrences of term t in document d (after phrase merging)
-  |d|       number of term occurrences in d; avgdl their mean over our corpus
+  |d|       number of term occurrences in d; avgdl their mean over documents of d's source (see bm25_weights)
   N_bg      documents in the background corpus (Brown: 500 samples)
   df_bg(t)  background documents containing t
   k1 = 1.2 (tf saturation), b = 0.75 (length normalization)
@@ -79,7 +79,7 @@ def main() -> None:
     background_df, background_size = brown_document_frequencies(vocabulary, lemma_by_lowercase_text)
     idf = {key: background_idf(background_df.get(key, 0), background_size) for key in vocabulary}
 
-    weights_by_document = bm25_weights(term_sequences, idf)
+    weights_by_document = bm25_weights(documents, term_sequences, idf)
     display_by_key = most_common_display(term_sequences)
     write_term_tokens(documents, term_sequences, sentences_by_document, index_by_key)
     export_corpus(documents, vocabulary, display_by_key, idf, background_df, document_frequency, term_sequences,
@@ -239,12 +239,20 @@ def background_idf(document_frequency: int, background_size: int) -> float:
     return math.log((background_size - document_frequency + 0.5) / (document_frequency + 0.5) + 1)
 
 
-def bm25_weights(term_sequences, idf) -> list[dict[str, float]]:
+def bm25_weights(documents, term_sequences, idf) -> list[dict[str, float]]:
+    """avgdl is the mean length of documents of the same source, not of the whole corpus (as BM25F does per field).
+    Full-text papers are ~40x longer than abstracts; one corpus-wide mean would make every abstract look short and
+    shift its weights whenever full text exists in the corpus, even with the full-text source deselected."""
     lengths = [len(sequence) for sequence in term_sequences]
-    average_length = sum(lengths) / max(1, sum(1 for length in lengths if length))
+    lengths_by_source: dict[str, list[int]] = defaultdict(list)
+    for document, length in zip(documents, lengths):
+        if length:
+            lengths_by_source[document.source].append(length)
+    average_length_by_source = {source: sum(values) / len(values) for source, values in lengths_by_source.items()}
     weights_by_document = []
-    for sequence, length in zip(term_sequences, lengths):
+    for document, sequence, length in zip(documents, term_sequences, lengths):
         term_frequency = Counter(term.key for term in sequence)
+        average_length = average_length_by_source.get(document.source, 1)
         length_factor = BM25_K1 * (1 - BM25_B + BM25_B * length / average_length)
         weights = {key: idf[key] * count * (BM25_K1 + 1) / (count + length_factor) for key, count in term_frequency.items()}
         top = sorted(weights.items(), key=lambda item: -item[1])[:MAX_TERMS_PER_DOCUMENT]

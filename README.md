@@ -31,6 +31,11 @@ uv run build-semantics      # 3. term similarity (co-occurrence, contextual embe
    - The first run makes about 2,000 requests, at one per second per host, and takes roughly 40 minutes. Later runs
      read the cache and take seconds. Delete a file in `data/raw/` to refetch it.
    - Which pages and presentation types count is set in `pipeline/config/*.tsv`.
+   - Full text: entry titles are matched against the arXiv API (batches of 10, one query every 5 s, with backoff
+     when arXiv answers 429). A match needs near-identical titles, publication in 2025 or later, and a shared
+     author surname. Every match is listed in `data/interim/fulltext_matches.tsv` for review. Bodies come from
+     arXiv's HTML version, or the PDF if there is none, at arxiv.org's 15 s crawl delay. Abstract, references and
+     acknowledgments are dropped. With a few hundred matches the first run takes about 1.5 hours longer.
 2. **`build-terms`** tokenizes with spaCy and downloads the Brown Corpus through NLTK into `data/external/` (once).
    - Writes `web/public/data/corpus.json` (about 3 MB, what the app loads), `data/interim/term_tokens.jsonl` and
      `data/interim/terms_report.md` (top terms, entity drops, Brown-unseen terms for review).
@@ -40,7 +45,7 @@ uv run build-semantics      # 3. term similarity (co-occurrence, contextual embe
    co-occurrence and by contextual embedding (`all-MiniLM-L6-v2`, downloaded from Hugging Face once, about 90 MB).
    Takes about 10 seconds with an Apple GPU.
 
-The sources are public pages. Full text is limited to open-access preprints (not yet fetched). The app ships derived
+The sources are public pages. Full text is limited to open-access arXiv preprints. The app ships derived
 term statistics, titles and links, not abstracts or page text.
 
 ## Running the app

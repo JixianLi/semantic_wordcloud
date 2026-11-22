@@ -106,7 +106,9 @@ def parse_calendar_entry(client: CachedHttpClient, presentation_id: str, session
     paragraphs = [paragraph for paragraph in paragraphs if paragraph]
     tags = [paragraph.split(":", 1)[1].strip() for paragraph in paragraphs if paragraph.startswith("Tag:")]
     content = [paragraph for paragraph in paragraphs if not METADATA_PARAGRAPH.match(paragraph)]
+    authors = []
     if content and is_people_paragraph(content[0]):
+        authors = people_names(content[0])
         content = content[1:]
     return {
         "presentation_id": presentation_id,
@@ -115,6 +117,7 @@ def parse_calendar_entry(client: CachedHttpClient, presentation_id: str, session
         "title": normalize_whitespace(title),
         "abstract": remove_urls_and_emails(normalize_whitespace("\n\n".join(content))),
         "tags": tags,
+        "authors": authors,
     }
 
 
@@ -124,6 +127,13 @@ def is_people_paragraph(paragraph: str) -> bool:
     if paragraph.endswith(")"):
         return True
     return "(" in paragraph and not paragraph.endswith((".", "!", "?", ":", '"', "”")) and len(paragraph) < 600
+
+
+def people_names(paragraph: str) -> list[str]:
+    """Names from "A, B (Affiliation); C and D (Affiliation)": affiliations removed, split on , ; and "and"."""
+    without_affiliations = re.sub(r"\([^()]*(\([^()]*\))?[^()]*\)", "", paragraph)
+    parts = re.split(r",|;|\band\b", without_affiliations)
+    return [part.strip() for part in parts if part.strip()]
 
 
 def presentation_document(presentation: dict, source: str, track: str) -> Document:
@@ -136,7 +146,7 @@ def presentation_document(presentation: dict, source: str, track: str) -> Docume
         url=presentation["url"],
         text=f"{presentation['title']}.\n\n{presentation['abstract']}",
         event=presentation["session_title"],
-        extra={"tags": presentation["tags"]},
+        extra={"tags": presentation["tags"], "authors": presentation["authors"]},
     )
 
 

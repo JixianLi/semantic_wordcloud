@@ -69,7 +69,8 @@ def collect_program_entries(client: CachedHttpClient) -> list[Document]:
             url=detail_url,
             text=f"{title}.\n\n{abstract}",
             event=card.get("data-event", ""),
-            extra={"keywords": card.get("data-keywords-label", ""), "session": card.get("data-session", "")},
+            extra={"keywords": card.get("data-keywords-label", ""), "session": card.get("data-session", ""),
+                   "authors": [name.strip() for name in card.get("data-authors", "").split(",") if name.strip()]},
         ))
     return documents
 

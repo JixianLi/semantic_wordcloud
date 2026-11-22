@@ -9,15 +9,17 @@ from pathlib import Path
 
 from .cached_http import CachedHttpClient
 from .documents import Document, write_documents
-from .sources import sc26, vis2026
+from .sources import arxiv_fulltext, sc26, vis2026
 
 PIPELINE_DIR = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PIPELINE_DIR / "config"
 DATA_DIR = PIPELINE_DIR.parent / "data"
 DOCUMENTS_PATH = DATA_DIR / "interim" / "documents.jsonl"
 REPORT_PATH = DATA_DIR / "interim" / "corpus_report.md"
-# ieeevis.org's robots.txt asks for a 10 s crawl delay; everything else gets 1 s.
-SECONDS_BETWEEN_REQUESTS_BY_HOST = {"ieeevis.org": 10.0}
+FULLTEXT_MATCHES_PATH = DATA_DIR / "interim" / "fulltext_matches.tsv"
+# Crawl delays: ieeevis.org's and arxiv.org's robots.txt (10 s, 15 s); others 1 s. The arXiv API asks for 3 s but
+# answered 429 at that pace, so it gets 5 s (and CachedHttpClient backs off on 429).
+SECONDS_BETWEEN_REQUESTS_BY_HOST = {"ieeevis.org": 10.0, "arxiv.org": 15.0, "export.arxiv.org": 5.0}
 WORD = re.compile(r"\w+")
 # An entry whose text beyond its title is shorter than this has no abstract to speak of (e.g. a workshop talk listed
 # with speakers only).
@@ -31,6 +33,7 @@ def main() -> None:
     documents = vis2026.collect_documents(client, CONFIG_DIR) + sc26.collect_documents(client, CONFIG_DIR)
     documents = [document for document in documents if content_word_count(document) >= MIN_CONTENT_WORDS]
     documents = drop_duplicate_works(documents)
+    documents += arxiv_fulltext.collect_documents(client, documents, FULLTEXT_MATCHES_PATH)
     write_documents(documents, DOCUMENTS_PATH)
     REPORT_PATH.write_text(corpus_report(documents))
     print(f"{len(documents)} documents -> {DOCUMENTS_PATH}\nreport -> {REPORT_PATH}")
