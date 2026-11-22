@@ -54,3 +54,20 @@ export async function loadCorpus(url: string): Promise<Corpus> {
 export function trackKey(document: Pick<CorpusDocument, "conference" | "source" | "track">): string {
     return `${document.conference}|${document.source}|${document.track}`;
 }
+
+// Shape of public/data/neighbors.json (pipeline/src/semantic_wordcloud/build_semantics.py): for each listed term,
+// its nearest terms by each measure as [neighbor term indices, similarities 0..1], best first.
+export interface NeighborLists {
+    model: string;
+    terms: number[];
+    cooccurrence: [number[], number[]][];
+    embedding: [number[], number[]][];
+}
+
+export async function loadNeighbors(url: string): Promise<NeighborLists> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Could not load ${url}: ${response.status}`);
+    }
+    return response.json();
+}

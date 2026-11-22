@@ -152,6 +152,20 @@ is the upgrade path if we ever need large graphs.
 - Within a conference, the same long title is kept once (the longest text). This catches works accepted as both a
   poster and a workshop paper.
 
+## 2.9 Phase 3 as built (2026-11-22)
+- Embedding similarity is **contextual**, not the bare term text (decided 2026-11-22). A term is the mean of the
+  mean-centered MiniLM embeddings of the sentences it occurs in. Bare-term embeddings mostly measured spelling
+  (LLM ~ LLVM).
+- Co-occurrence is NPMI over sentences. A pair needs at least 3 sentences in at least 3 different documents.
+- Sentences repeated verbatim across documents (457 boilerplate sentences) count once, for BM25 too.
+- The layout has two phases: an untangling graph layout (links and repulsion, no collision), then packing
+  (collision and an ellipse boundary). Linked pairs end at 0.36–0.55× the distance of random pairs, down from
+  0.5–0.7× with one phase. A warm start (after a filter change) skips untangling; "Re-layout from scratch" redoes
+  it.
+- The layout runs in a Web Worker; text is measured on the main thread.
+- Venue color: a diverging scale VIS blue ← text ink → SC red on the SC share, with poles validated per display
+  mode. In single-venue scopes words use the plain text color; community colors are Phase 5.
+
 ## 3. Phases
 1. Repo scaffold, VIS+SC fetch/parse for `abstract`, `keynote`, `website`, and `documents.jsonl` with stats
    (checkpoint: you review the corpus)

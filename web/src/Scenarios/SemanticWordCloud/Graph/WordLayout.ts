@@ -1,10 +1,23 @@
-// Force-directed placement of words as rectangles. Phase 2: no edges yet, only a pull to the center (elliptical,
-// to fill a wide panel) against rectangle collision. Phase 3 adds similarity links.
+// Force-directed placement of words as rectangles, with similarity links pulling related words together.
+//
+// Two steps, so the expensive one can run in a Web Worker:
+//   measureWords   (main thread: needs the page's fonts) word -> font size and box
+//   simulateLayout (pure; LayoutWorker runs it)          boxes + links -> positions
 //
 // Font size encodes score by area: a word's ink area grows with fontSize², so fontSize ∝ √score keeps area ∝ score.
 // Sizes below minFontSize are clamped up, which overstates the smallest words; that is the price of legibility.
+//
+// Two phases, as in force-directed semantic word clouds (Barth, Kobourov & Pupyrev 2014: lay out the similarity
+// graph, then remove overlaps):
+//   1. structure (UNTANGLE_TICKS): words as points. Links pull related words together (strength = similarity ·
+//      linkStrength); many-body repulsion spreads everything else; weak centering. Collision would freeze words
+//      wherever they first touch, so it is off.
+//   2. packing: rectangle collision (RectangleCollisionForce) and an ellipse boundary of the panel's aspect ratio
+//      (area = words' box area / TARGET_FILL) switch on and squeeze the layout into a cloud; links stay on with
+//      short rest lengths so neighbors stay adjacent; then a final overlap-removal pass.
 
-import { forceSimulation, forceX, forceY } from "d3-force";
+import { forceLink, forceManyBody, forceSimulation, forceX, forceY, type SimulationLinkDatum } from "d3-force";
+import { forceEllipseBoundary } from "./EllipseBoundaryForce";
 import { forceRectangleCollision, removeOverlaps, type RectangleNode } from "./RectangleCollisionForce";
 
 export interface WordInput {
@@ -13,58 +26,102 @@ export interface WordInput {
     weight: number;
 }
 
-export interface PlacedWord extends RectangleNode {
-    key: string;
-    text: string;
-    weight: number;
+export interface MeasuredWord extends WordInput {
     fontSize: number;
+    width: number;
+    height: number;
+}
+
+export interface PlacedWord extends MeasuredWord, RectangleNode {
     x: number;
     y: number;
 }
 
-export interface WordLayoutOptions {
+export interface LayoutLink {
+    source: number;   // index into the words
+    target: number;
+    similarity: number;
+}
+
+export interface MeasureOptions {
     maxFontSize: number;
     minFontSize: number;
     fontFamily: string;
     fontWeight: number;
+}
+
+export interface SimulationOptions {
     aspectRatio: number;
+    linkStrength: number;
     // Previous positions by key: words that stay keep their place, so a filter change does not scatter the cloud.
-    previousPositions?: Map<string, { x: number; y: number }>;
+    previousPositions?: Record<string, { x: number; y: number }>;
     ticks?: number;
 }
 
-const TEXT_HEIGHT_FACTOR = 1.05;
-const COLLISION_PADDING = 2;
+type SimulationLink = SimulationLinkDatum<PlacedWord> & { similarity: number };
 
-export function layoutWords(words: WordInput[], options: WordLayoutOptions): PlacedWord[] {
+const TEXT_HEIGHT_FACTOR = 1.05;
+export const COLLISION_PADDING = 4;
+// Share of the boundary ellipse the word boxes should cover; lower leaves more room to move apart.
+const TARGET_FILL = 0.5;
+const UNTANGLE_TICKS = 300;
+
+export function measureWords(words: WordInput[], options: MeasureOptions): MeasuredWord[] {
     const maxWeight = Math.max(...words.map(word => word.weight), Number.EPSILON);
     const measure = textMeasurer(options.fontFamily, options.fontWeight);
-    const nodes: PlacedWord[] = words.map((word, index) => {
+    return words.map(word => {
         const fontSize = Math.max(options.minFontSize, options.maxFontSize * Math.sqrt(word.weight / maxWeight));
-        const previous = options.previousPositions?.get(word.key);
+        return { ...word, fontSize, width: measure(word.text, fontSize), height: fontSize * TEXT_HEIGHT_FACTOR };
+    });
+}
+
+export function simulateLayout(words: MeasuredWord[], links: LayoutLink[], options: SimulationOptions): PlacedWord[] {
+    const minHeight = Math.min(...words.map(word => word.height), 10);
+    const nodes: PlacedWord[] = words.map((word, index) => {
+        const previous = options.previousPositions?.[word.key];
         const angle = index * 2.399963; // golden angle: an even spiral of starting points
-        const radius = 4 * Math.sqrt(index) * options.minFontSize;
+        const radius = 4 * Math.sqrt(index) * minHeight;
         return {
             ...word,
-            fontSize,
-            width: measure(word.text, fontSize),
-            height: fontSize * TEXT_HEIGHT_FACTOR,
             x: previous?.x ?? radius * Math.cos(angle) * options.aspectRatio,
             y: previous?.y ?? radius * Math.sin(angle),
         };
     });
 
+    const boxArea = nodes.reduce((sum, node) => sum + (node.width + COLLISION_PADDING) * (node.height + COLLISION_PADDING), 0);
+    const radiusY = Math.sqrt(boxArea / TARGET_FILL / (Math.PI * options.aspectRatio));
+    const radiusX = radiusY * options.aspectRatio;
+
+    const simulationLinks: SimulationLink[] = links.map(link => ({ ...link }));
+    const restLength = (link: SimulationLink) => {
+        const source = link.source as PlacedWord;
+        const target = link.target as PlacedWord;
+        return (source.height + target.height) / 2;
+    };
     const simulation = forceSimulation(nodes)
-        .force("x", forceX<PlacedWord>(0).strength(0.04))
-        .force("y", forceY<PlacedWord>(0).strength(0.04))
-        .force("collide", forceRectangleCollision<PlacedWord>(COLLISION_PADDING))
+        .force("link", forceLink<PlacedWord, SimulationLink>(simulationLinks)
+            .distance(restLength)
+            .strength(link => link.similarity * options.linkStrength))
+        .force("charge", forceManyBody<PlacedWord>().strength(node => -2 * node.height).distanceMax(radiusX))
+        .force("x", forceX<PlacedWord>(0).strength(0.02))
+        .force("y", forceY<PlacedWord>(0).strength(0.02 * options.aspectRatio))
         .stop();
+    const hasPreviousPositions = Object.keys(options.previousPositions ?? {}).length > 0;
+    for (let tick = 0; tick < (hasPreviousPositions ? 0 : UNTANGLE_TICKS); tick++) {
+        simulation.tick();
+    }
+
+    simulation
+        .force("charge", null)
+        .force("boundary", forceEllipseBoundary<PlacedWord>(radiusX, radiusY))
+        .force("collide", forceRectangleCollision<PlacedWord>(COLLISION_PADDING))
+        .alpha(1);
     const ticks = options.ticks ?? 300;
     for (let tick = 0; tick < ticks; tick++) {
         simulation.tick();
     }
     removeOverlaps(nodes, COLLISION_PADDING);
-    return nodes;
+    return nodes.map(({ key, text, weight, fontSize, width, height, x, y }) => ({ key, text, weight, fontSize, width, height, x, y }));
 }
 
 function textMeasurer(fontFamily: string, fontWeight: number): (text: string, fontSize: number) => number {

@@ -1,35 +1,133 @@
 {
   "name": "SemanticWordCloud",
   "description": "Word cloud of IEEE VIS 2026 and SC26",
-  "views": ["Cloud", "Filters"],
-  "appearance": { "default_mode": "dark" },
+  "views": [
+    "Cloud",
+    "Filters",
+    "TermDetail"
+  ],
+  "appearance": {
+    "default_mode": "dark"
+  },
   "panel_layouts": {
     "tool_placement": "docked",
     "inspector_anchor": "top_right",
     "default_layouts": {
       "xl": [
-        { "i": "Cloud", "role": "content", "x": 0, "y": 0, "w": 16, "h": 16, "visible": true },
-        { "i": "Filters", "role": "tool", "x": 16, "y": 0, "w": 6, "h": 16, "visible": true }
+        {
+          "i": "Cloud",
+          "role": "content",
+          "x": 0,
+          "y": 0,
+          "w": 16,
+          "h": 16,
+          "visible": true
+        },
+        {
+          "i": "Filters",
+          "role": "tool",
+          "x": 16,
+          "y": 0,
+          "w": 6,
+          "h": 16,
+          "visible": true
+        },
+        {
+          "i": "TermDetail",
+          "role": "tool",
+          "x": 16,
+          "y": 16,
+          "w": 6,
+          "h": 12,
+          "visible": true
+        }
       ],
       "lg": [
-        { "i": "Cloud", "role": "content", "x": 0, "y": 0, "w": 9, "h": 14, "visible": true },
-        { "i": "Filters", "role": "tool", "x": 9, "y": 0, "w": 3, "h": 14, "visible": true }
+        {
+          "i": "Cloud",
+          "role": "content",
+          "x": 0,
+          "y": 0,
+          "w": 9,
+          "h": 14,
+          "visible": true
+        },
+        {
+          "i": "Filters",
+          "role": "tool",
+          "x": 9,
+          "y": 0,
+          "w": 3,
+          "h": 14,
+          "visible": true
+        },
+        {
+          "i": "TermDetail",
+          "role": "tool",
+          "x": 9,
+          "y": 14,
+          "w": 3,
+          "h": 10,
+          "visible": true
+        }
       ],
       "sm": [
-        { "i": "Cloud", "role": "content", "x": 0, "y": 0, "w": 4, "h": 10, "visible": true },
-        { "i": "Filters", "role": "tool", "x": 0, "y": 10, "w": 4, "h": 10, "visible": true }
+        {
+          "i": "Cloud",
+          "role": "content",
+          "x": 0,
+          "y": 0,
+          "w": 4,
+          "h": 10,
+          "visible": true
+        },
+        {
+          "i": "Filters",
+          "role": "tool",
+          "x": 0,
+          "y": 10,
+          "w": 4,
+          "h": 10,
+          "visible": true
+        },
+        {
+          "i": "TermDetail",
+          "role": "tool",
+          "x": 0,
+          "y": 20,
+          "w": 4,
+          "h": 10,
+          "visible": true
+        }
       ]
     },
-    "breakpoints": { "xl": 1440, "lg": 800, "sm": 0 },
-    "cols": { "xl": 22, "lg": 12, "sm": 4 }
+    "breakpoints": {
+      "xl": 1440,
+      "lg": 800,
+      "sm": 0
+    },
+    "cols": {
+      "xl": 22,
+      "lg": 12,
+      "sm": 4
+    }
   },
   "global_data": {
     "corpus_url": "data/corpus.json",
     "scope": "combined",
-    "sources": ["accepted_entries", "keynote", "website"],
+    "sources": [
+      "accepted_entries",
+      "keynote",
+      "website"
+    ],
     "excluded_tracks": [],
     "balance_venues": true,
     "term_limit": 150,
-    "include_phrases": true
+    "include_phrases": true,
+    "neighbors_url": "data/neighbors.json",
+    "embedding_weight": 0.5,
+    "links_per_term": 3,
+    "link_strength": 0.6,
+    "show_all_links": false
   }
 }
