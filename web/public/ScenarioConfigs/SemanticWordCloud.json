@@ -10,7 +10,7 @@
     "default_mode": "dark"
   },
   "panel_layouts": {
-    "tool_placement": "docked",
+    "tool_placement": { "xl": "docked", "lg": "docked", "sm": "stacked" },
     "inspector_anchor": "top_right",
     "default_layouts": {
       "xl": [
