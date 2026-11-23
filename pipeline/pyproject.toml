@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Jixian Li", email = "ljx.sci@gmail.com" }
 ]
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "corpus-fetch",

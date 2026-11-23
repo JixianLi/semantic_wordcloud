@@ -76,3 +76,12 @@ npm run deploy              # builds, then pushes dist/ (app + data) to the gh-p
 ```
 
 Only `gh-pages` carries the data files; `main` stays code-only. Each deploy adds about 12 MB to that branch's history.
+
+## License
+
+The code in this repository is MIT licensed; see [LICENSE](LICENSE).
+
+The MIT license covers the code only. Titles, abstracts, page text and preprints from the IEEE VIS and SC
+conference websites and programs and from arXiv belong to their authors, owners and publishers. This project claims
+no rights to them. The deployed data files (`corpus.json`, `neighbors.json`) contain entry titles and links to the
+original pages alongside derived term statistics; the titles remain the property of their owners.
