@@ -19,19 +19,18 @@ SC is fetched at 1 request/s. Every raw response is cached on disk, so we fetch 
 
 ```
 semantic_wordcloud/
-├── scripts/                       Python (uv), every network fetch: fetch-web, fetch-papers (corpus_fetch package)
+├── scripts/                       Python (uv), every network fetch: fetch-web, fetch-papers, fetch-background (corpus_fetch package)
 │   ├── config/                    which pages and presentation types count
 │   └── src/corpus_fetch/
 │       ├── sources/               one module per site (fetch + parse): vis2026.py, sc26.py, arxiv_fulltext.py
 │       └── polite_http.py         permanent on-disk HTTP cache + per-host rate limit (the fetch/parse stage boundary)
 ├── pipeline/                      Python (uv), offline, produces static artifacts from documents.jsonl
 │   ├── pyproject.toml
-│   └── semantic_wordcloud/
-│       ├── terms/                 tokenize, lemmatize, phrase extraction
-│       ├── weighting/             BM25
-│       ├── semantics/             term–term similarity (co-occurrence, embedding)
-│       └── export/                web artifacts
-├── data/                          gitignored: raw/ (HTTP cache), interim/ (jsonl per stage)
+│   └── src/semantic_wordcloud/
+│       ├── tokenize_corpus.py     spaCy tokens, lemmas, term keys
+│       ├── build_terms.py         phrases, Brown background IDF, BM25, web export (corpus.json)
+│       └── build_semantics.py     term–term similarity: co-occurrence, contextual embedding (neighbors.json)
+├── data/                          gitignored: raw/ (HTTP cache), external/ (Brown Corpus), interim/ (jsonl per stage)
 └── web/                           Vite host app
     ├── vendor/webuvisbox/         git submodule
     ├── public/data/               exported artifacts

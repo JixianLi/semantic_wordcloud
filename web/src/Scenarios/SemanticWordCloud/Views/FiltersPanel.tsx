@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Link from "@mui/material/Link";
 import Slider from "@mui/material/Slider";
 import Switch from "@mui/material/Switch";
 import ToggleButton from "@mui/material/ToggleButton";
@@ -175,6 +176,15 @@ export default observer(function FiltersPanel() {
                 <Box sx={{ mt: 1 }}>
                     <Button size="small" variant="outlined" onClick={() => context.relayout()}>Re-layout from scratch</Button>
                 </Box>
+                <Typography variant="caption" component="p" sx={{ mt: 2, color: "text.secondary" }}>
+                    Data from{" "}
+                    <Link href="https://ieeevis.org/year/2026/" target="_blank" rel="noopener noreferrer">ieeevis.org</Link>,{" "}
+                    <Link href="https://sc26.supercomputing.org/" target="_blank" rel="noopener noreferrer">sc26.supercomputing.org</Link>{" "}
+                    and <Link href="https://arxiv.org/" target="_blank" rel="noopener noreferrer">arXiv</Link>. Titles and
+                    source texts belong to their authors and publishers.{" "}
+                    <Link href="https://github.com/JixianLi/semantic_wordcloud" target="_blank" rel="noopener noreferrer">Code</Link>{" "}
+                    is MIT licensed.
+                </Typography>
             </Box>
         </Panel>
     );

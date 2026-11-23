@@ -4,7 +4,7 @@
 //
 // Only TOPIC_COLOR_COUNT topics get a color: in a word cloud any two colors can sit side by side, and of the
 // documented categorical palette only its first three slots stay distinguishable for color-vision-deficient readers
-// in every pair (dataviz validator, --pairs all). Topics are ranked by total score; the rest share muted ink.
+// in every pair (dataviz validator, --pairs all). Topics are ranked by total score; uncolored ones share muted ink.
 
 import Graph from "graphology";
 import louvain from "graphology-communities-louvain";
@@ -20,7 +20,7 @@ export interface Topic {
 
 export interface TopicAssignment {
     topicByKey: Map<string, number>;
-    // Largest first; the first TOPIC_COLOR_COUNT are the colored ones.
+    // Largest first; the first TOPIC_COLOR_COUNT are colored unless the user picks others (topicColorAnchors).
     topics: Topic[];
 }
 

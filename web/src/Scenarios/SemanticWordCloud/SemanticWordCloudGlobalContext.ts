@@ -4,7 +4,7 @@ import {
     type Conference, type Corpus, type CorpusDocument, loadCorpus, loadNeighbors, type Source, SOURCES, trackKey,
 } from "./CorpusData";
 import { distinctiveTerms, type Scope, scopeConferences, type ScoredTerm, scoreTerms } from "./TermScoring";
-import { detectTopics, type TopicAssignment } from "./Topics";
+import { detectTopics, TOPIC_COLOR_COUNT, type TopicAssignment } from "./Topics";
 import { blendedSimilarity, indexSimilarities, type SimilarityLink, type TermSimilarities, visibleLinks } from "./Similarity";
 import { type MeasuredWord, measureWords, type PlacedWord, WordCloudLayoutRunner } from "@core/Renderers/Graph";
 
@@ -22,6 +22,8 @@ import { type MeasuredWord, measureWords, type PlacedWord, WordCloudLayoutRunner
 //   show_all_links: boolean
 //   measure: "prominence" | "distinctiveness"   distinctiveness (VIS vs SC log-odds) applies to the combined scope
 //   color_by: "venue" | "topic"                 venue applies to the combined scope
+//   topic_color_anchors: (string | null)[]      per color slot, a term key whose topic gets that color; omitted:
+//                                               the largest topics
 
 const FONT_FAMILY = '"Inter Variable", Inter, system-ui, sans-serif';
 const FONT_WEIGHT = 500;
@@ -67,6 +69,9 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
     showAllLinks = false;
     measure: Measure = "prominence";
     colorBy: ColorBy = "venue";
+    // null: the largest topics take the color slots. Otherwise one entry per slot: a term key whose topic takes that
+    // slot's color, wherever Louvain puts it after a filter change (topic ids are re-ranked on every change).
+    topicColorAnchors: (string | null)[] | null = null;
     aspectRatio = 1.6;
 
     selectedTermKey: string | null = null;
@@ -110,6 +115,7 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         this.showAllLinks = data.show_all_links ?? this.showAllLinks;
         this.measure = data.measure ?? this.measure;
         this.colorBy = data.color_by ?? this.colorBy;
+        this.topicColorAnchors = Array.isArray(data.topic_color_anchors) ? data.topic_color_anchors : null;
     }
 
     async asyncInitialize(): Promise<void> {
@@ -144,6 +150,7 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
             show_all_links: this.showAllLinks,
             measure: this.measure,
             color_by: this.colorBy,
+            ...(this.topicColorAnchors ? { topic_color_anchors: this.topicColorAnchors } : {}),
         };
     }
 
@@ -216,6 +223,38 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
 
     setColorBy(colorBy: ColorBy): void {
         this.colorBy = colorBy;
+    }
+
+    // A colored topic loses its color; an uncolored one takes the first free slot (none free: no change, the legend
+    // says to clear one first).
+    toggleTopicColor(topicId: number): void {
+        const topic = this.topics.topics[topicId];
+        if (!topic) {
+            return;
+        }
+        const anchors = this.topicColorAnchors ?? this.currentTopicAnchors();
+        const slot = this.topicColorSlots.get(topicId);
+        if (slot !== undefined) {
+            this.topicColorAnchors = anchors.map((anchor, index) => index === slot ? null : anchor);
+            return;
+        }
+        const freeSlot = Array.from({ length: TOPIC_COLOR_COUNT }, (_, index) => index)
+            .find(index => ![...this.topicColorSlots.values()].includes(index));
+        if (freeSlot !== undefined) {
+            this.topicColorAnchors = anchors.map((anchor, index) => index === freeSlot ? topic.keys[0] : anchor);
+        }
+    }
+
+    resetTopicColors(): void {
+        this.topicColorAnchors = null;
+    }
+
+    private currentTopicAnchors(): (string | null)[] {
+        const anchors: (string | null)[] = Array(TOPIC_COLOR_COUNT).fill(null);
+        this.topicColorSlots.forEach((slot, topicId) => {
+            anchors[slot] = this.topics.topics[topicId].keys[0];
+        });
+        return anchors;
     }
 
     setShowAllLinks(show: boolean): void {
@@ -308,6 +347,23 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
 
     get topics(): TopicAssignment {
         return detectTopics(this.measuredWords, this.layoutLinks);
+    }
+
+    // Topic id -> color slot.
+    get topicColorSlots(): Map<number, number> {
+        const { topics, topicByKey } = this.topics;
+        const slots = new Map<number, number>();
+        if (!this.topicColorAnchors) {
+            topics.slice(0, TOPIC_COLOR_COUNT).forEach(topic => slots.set(topic.id, topic.id));
+            return slots;
+        }
+        this.topicColorAnchors.forEach((anchor, slot) => {
+            const topicId = anchor === null ? undefined : topicByKey.get(anchor);
+            if (topicId !== undefined && !slots.has(topicId)) {
+                slots.set(topicId, slot);
+            }
+        });
+        return slots;
     }
 
     // Links between placed words, by key, for drawing.

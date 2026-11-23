@@ -1,13 +1,15 @@
 import { useEffect, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
+import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { Panel } from "@core/Panels/Panel";
 import { useScenario } from "@core/ScenarioManager/ScenarioManager";
 import type { SemanticWordCloudGlobalContext } from "../SemanticWordCloudGlobalContext";
 import { WordCloud } from "@core/Renderers/Graph";
-import { topicColors, venueColorScale, venuePoles } from "../WordColors";
+import { topicColors, venueColorScale, venueNeutralInk, venuePoles } from "../WordColors";
 import { TOPIC_COLOR_COUNT } from "../Topics";
 
 // Distinctiveness color: venue share = 0.5 − 0.5·tanh(z / Z_COLOR_SCALE), so |z| of about 4 and more reaches the
@@ -38,18 +40,21 @@ export default observer(function CloudPanel() {
     const words = context.placedWords;
 
     const colorBy = context.effectiveColorBy;
-    const venueColor = venueColorScale(tokens.mode, tokens.text);
+    const neutralInk = venueNeutralInk(tokens.mode, tokens.text, tokens.textSecondary);
+    const venueColor = venueColorScale(tokens.mode, neutralInk);
     const topicPalette = topicColors(tokens.mode);
     const topicByKey = colorBy === "topic" ? context.topics.topicByKey : new Map<string, number>();
+    const topicColorSlots = colorBy === "topic" ? context.topicColorSlots : new Map<number, number>();
     const scoredByKey = context.scoredTermByKey;
     const colorOf = (key: string) => {
         if (colorBy === "topic") {
             const topic = topicByKey.get(key);
-            return topic !== undefined && topic < TOPIC_COLOR_COUNT ? topicPalette[topic] : tokens.textSecondary;
+            const slot = topic === undefined ? undefined : topicColorSlots.get(topic);
+            return slot !== undefined ? topicPalette[slot] : tokens.textSecondary;
         }
         const scored = scoredByKey.get(key);
         if (!scored || scored.score <= 0) {
-            return tokens.text;
+            return neutralInk;
         }
         if (scored.zScore !== undefined) {
             return venueColor(0.5 - 0.5 * Math.tanh(scored.zScore / Z_COLOR_SCALE));
@@ -93,26 +98,43 @@ const TopicLegend = observer(function TopicLegend() {
     const context = useScenario().globalContext as SemanticWordCloudGlobalContext;
     const tokens = useTheme().tokens;
     const palette = topicColors(tokens.mode);
+    const slots = context.topicColorSlots;
     const topics = context.topics.topics;
-    const uncolored = topics.slice(TOPIC_COLOR_COUNT);
-    const otherTopicCount = uncolored.filter(topic => topic.keys.length > 1).length;
-    const unlinkedCount = uncolored.filter(topic => topic.keys.length === 1).length;
-    const otherLabel = [
-        otherTopicCount > 0 ? `${otherTopicCount} more topic${otherTopicCount === 1 ? "" : "s"}` : "",
-        unlinkedCount > 0 ? `${unlinkedCount} unlinked word${unlinkedCount === 1 ? "" : "s"}` : "",
-    ].filter(Boolean).join(", ");
+    const linkedTopics = topics.filter(topic => topic.keys.length > 1 || slots.has(topic.id));
+    const unlinkedCount = topics.length - linkedTopics.length;
+    const allSlotsTaken = slots.size >= TOPIC_COLOR_COUNT;
+    const row = { display: "flex", alignItems: "center", width: "100%", justifyContent: "flex-start", textAlign: "left",
+                  borderRadius: "4px", px: 0.5, color: "text.secondary" };
+    const swatch = { flex: "none", width: 8, height: 8, borderRadius: "2px", mr: 0.75 };
     return (
-        <Box sx={{ position: "absolute", left: 12, bottom: 10, maxWidth: 360 }}>
-            {topics.slice(0, TOPIC_COLOR_COUNT).map(topic => (
-                <Typography key={topic.id} variant="caption" sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
-                    <Box component="span" sx={{ flex: "none", width: 8, height: 8, borderRadius: "2px", bgcolor: palette[topic.id], mr: 0.75 }} />
-                    {topic.label}
-                </Typography>
-            ))}
-            {otherLabel && (
-                <Typography variant="caption" sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
-                    <Box component="span" sx={{ flex: "none", width: 8, height: 8, borderRadius: "2px", bgcolor: tokens.textSecondary, mr: 0.75 }} />
-                    {otherLabel}
+        <Box sx={{ position: "absolute", left: 8, bottom: 10, maxWidth: 360, maxHeight: "45%", overflowY: "auto" }}>
+            <Typography variant="caption" sx={{ display: "block", px: 0.5, color: "text.secondary", opacity: 0.8 }}>
+                {allSlotsTaken ? "Click a colored topic to clear it, then pick another" : "Click a topic to color it"}
+                {context.topicColorAnchors && (
+                    <Link component="button" variant="caption" underline="hover" onClick={() => context.resetTopicColors()}
+                          sx={{ ml: 1, verticalAlign: "baseline" }}>
+                        largest three
+                    </Link>
+                )}
+            </Typography>
+            {linkedTopics.map(topic => {
+                const slot = slots.get(topic.id);
+                const disabled = slot === undefined && allSlotsTaken;
+                return (
+                    <ButtonBase key={topic.id} disabled={disabled} onClick={() => context.toggleTopicColor(topic.id)}
+                                aria-pressed={slot !== undefined}
+                                sx={{ ...row, opacity: disabled ? 0.55 : 1, "&:hover": { bgcolor: tokens.controlFill } }}>
+                        <Box component="span" sx={{ ...swatch, bgcolor: slot !== undefined ? palette[slot] : tokens.textSecondary }} />
+                        <Typography variant="caption" noWrap sx={{ color: slot !== undefined ? "text.primary" : "text.secondary" }}>
+                            {`${topic.label} (${topic.keys.length})`}
+                        </Typography>
+                    </ButtonBase>
+                );
+            })}
+            {unlinkedCount > 0 && (
+                <Typography variant="caption" sx={{ ...row }}>
+                    <Box component="span" sx={{ ...swatch, bgcolor: tokens.textSecondary }} />
+                    {`${unlinkedCount} unlinked word${unlinkedCount === 1 ? "" : "s"}`}
                 </Typography>
             )}
         </Box>
@@ -122,7 +144,7 @@ const TopicLegend = observer(function TopicLegend() {
 const VenueLegend = observer(function VenueLegend({ distinctiveness }: { distinctiveness: boolean }) {
     const tokens = useTheme().tokens;
     const poles = venuePoles(tokens.mode);
-    const scale = venueColorScale(tokens.mode, tokens.text);
+    const scale = venueColorScale(tokens.mode, venueNeutralInk(tokens.mode, tokens.text, tokens.textSecondary));
     const stops = [0, 0.25, 0.5, 0.75, 1].map(share => `${scale(share)} ${share * 100}%`).join(", ");
     return (
         <Box sx={{ position: "absolute", left: 12, bottom: 10, width: 220 }}>

@@ -19,3 +19,4 @@ build-backend = "uv_build"
 [project.scripts]
 fetch-web = "corpus_fetch.fetch_web:main"
 fetch-papers = "corpus_fetch.fetch_papers:main"
+fetch-background = "corpus_fetch.fetch_background:main"

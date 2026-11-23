@@ -28,6 +28,7 @@ from pathlib import Path
 import nltk
 
 from corpus_fetch.documents import read_documents
+from corpus_fetch.fetch_background import NLTK_DATA_DIR
 from corpus_fetch.fetch_web import DATA_DIR, DOCUMENTS_PATH
 from .tokenize_corpus import display_form, load_language, read_term_list, term_key, word_tokens
 
@@ -42,7 +43,6 @@ MIN_REPEATED_SENTENCE_WORDS = 6
 NON_WORD = re.compile(r"\W+")
 MAX_TERMS_PER_DOCUMENT = 200
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
-NLTK_DATA_DIR = DATA_DIR / "external" / "nltk_data"
 TERM_TOKENS_PATH = DATA_DIR / "interim" / "term_tokens.jsonl"
 REPORT_PATH = DATA_DIR / "interim" / "terms_report.md"
 EXPORT_PATH = Path(__file__).resolve().parents[3] / "web" / "public" / "data" / "corpus.json"
@@ -217,7 +217,10 @@ def brown_document_frequencies(vocabulary, lemma_by_lowercase_text) -> tuple[Cou
     """Background df of every vocabulary term: Brown samples containing it, with the same word filter and keys as the
     corpus. A phrase counts when its words appear directly adjacent."""
     nltk.data.path.insert(0, str(NLTK_DATA_DIR))
-    nltk.download("brown", download_dir=str(NLTK_DATA_DIR), quiet=True)
+    try:
+        nltk.data.find("corpora/brown")
+    except LookupError:
+        raise SystemExit(f"Brown Corpus not found in {NLTK_DATA_DIR}: run fetch-background (in scripts/) first")
     from nltk.corpus import brown
 
     language = load_language(with_parser_and_entities=False)

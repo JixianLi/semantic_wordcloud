@@ -21,15 +21,16 @@ git clone --recurse-submodules <this repo>   # or: git submodule update --init
 cd scripts
 uv run fetch-web            # 1a. conference programs, keynotes, website pages
 uv run fetch-papers         # 1b. open-access preprint full text (after fetch-web)
+uv run fetch-background     # 1c. Brown Corpus, the general-English background
 cd ../pipeline
 uv run build-terms          # 2. terms, phrases, BM25 weights, web export (Python 3.12, spaCy, NLTK)
 uv run build-semantics      # 3. term similarity (co-occurrence, contextual embedding)
 ```
 
-1. **Fetching** (`scripts/`, light dependencies, no NLP packages). Both commands print the minimum interval per host
-   before they start and a per-host count of requests and cache hits at the end. `--seconds-between-requests
-   HOST=SECONDS` (repeatable) raises an interval; the defaults follow each site's robots.txt crawl delay and should
-   not be lowered. Both share the cache in `data/raw/`.
+1. **Fetching** (`scripts/`, light dependencies, no NLP packages). All three commands print the minimum interval per
+   host before they start and a per-host count of requests and cache hits at the end.
+   `--seconds-between-requests HOST=SECONDS` (repeatable) raises an interval; the defaults follow each site's
+   robots.txt crawl delay and should not be lowered. All share the cache in `data/raw/`.
 
    **`fetch-web`** fetches the VIS 2026 program listing, the ieeevis.org website repo (GitHub, branch `vis2026`),
    the SC26 program (sessions plus one ICS export per presentation) and the SC26 WordPress API.
@@ -45,7 +46,11 @@ uv run build-semantics      # 3. term similarity (co-occurrence, contextual embe
    shared author surname. Every match is listed in `data/interim/fulltext_matches.tsv` for review. Bodies come from
    arXiv's HTML version, or the PDF if there is none, at arxiv.org's 15 s crawl delay. Abstract, references and
    acknowledgments are dropped. With a few hundred matches the first run takes about 1.5 hours.
-2. **`build-terms`** tokenizes with spaCy and downloads the Brown Corpus through NLTK into `data/external/` (once).
+
+   **`fetch-background`** downloads the Brown Corpus (one 3 MB zip from NLTK's data repository on GitHub) into
+   `data/external/nltk_data/`.
+2. **`build-terms`** tokenizes with spaCy and reads the Brown Corpus from `data/external/` (stops with a message if
+   `fetch-background` has not run).
    - Writes `web/public/data/corpus.json` (about 3 MB, what the app loads), `data/interim/term_tokens.jsonl` and
      `data/interim/terms_report.md` (top terms, entity drops, Brown-unseen terms for review).
    - Takes about a minute. Stoplist and entity allowlist: `pipeline/config/stop_terms.txt`,
