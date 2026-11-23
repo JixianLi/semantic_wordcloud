@@ -6,11 +6,10 @@ import { useTheme } from "@mui/material/styles";
 import { Panel } from "@core/Panels/Panel";
 import { useScenario } from "@core/ScenarioManager/ScenarioManager";
 import type { SemanticWordCloudGlobalContext } from "../SemanticWordCloudGlobalContext";
-import { layoutBounds } from "../Graph/WordLayout";
+import { WordCloud } from "@core/Renderers/Graph";
 import { topicColors, venueColorScale, venuePoles } from "../WordColors";
 import { TOPIC_COLOR_COUNT } from "../Topics";
 
-const VIEW_PADDING = 12;
 // Distinctiveness color: venue share = 0.5 − 0.5·tanh(z / Z_COLOR_SCALE), so |z| of about 4 and more reaches the
 // full pole color and z = 0 (no difference) is neutral ink.
 const Z_COLOR_SCALE = 4;
@@ -37,9 +36,6 @@ export default observer(function CloudPanel() {
     }, [context]);
 
     const words = context.placedWords;
-    const positionByKey = new Map(words.map(word => [word.key, word]));
-    const bounds = layoutBounds(words);
-    const viewBox = [bounds.x - VIEW_PADDING, bounds.y - VIEW_PADDING, bounds.width + 2 * VIEW_PADDING, bounds.height + 2 * VIEW_PADDING].join(" ");
 
     const colorBy = context.effectiveColorBy;
     const venueColor = venueColorScale(tokens.mode, tokens.text);
@@ -61,12 +57,6 @@ export default observer(function CloudPanel() {
         return venueColor(scored.scoreByConference.sc / scored.score);
     };
 
-    const focusKey = context.hoveredTermKey ?? context.selectedTermKey;
-    const links = context.drawnLinks;
-    const focusLinks = focusKey ? links.filter(link => link.source === focusKey || link.target === focusKey) : [];
-    const focusNeighbors = new Set(focusLinks.flatMap(link => [link.source, link.target]));
-    const shownLinks = context.showAllLinks ? links : focusLinks;
-
     return (
         <Panel panelName="Cloud">
             <Box ref={containerRef} sx={{ width: "100%", height: "100%", position: "relative", minHeight: 0 }}>
@@ -75,57 +65,18 @@ export default observer(function CloudPanel() {
                 {context.corpus && context.scoredTerms.length === 0 && (
                     <Typography sx={{ p: 2, color: "text.secondary" }}>No documents selected.</Typography>
                 )}
-                <svg
-                    width="100%" height="100%" viewBox={viewBox} preserveAspectRatio="xMidYMid meet"
-                    style={{ display: "block" }}
-                    onClick={() => context.selectTerm(null)}
-                >
-                    <g>
-                        {shownLinks.map(link => {
-                            const source = positionByKey.get(link.source);
-                            const target = positionByKey.get(link.target);
-                            if (!source || !target) {
-                                return null;
-                            }
-                            return (
-                                <line
-                                    key={`${link.source}|${link.target}`}
-                                    x1={source.x} y1={source.y} x2={target.x} y2={target.y}
-                                    stroke={tokens.textMuted} strokeWidth={0.5 + 1.5 * link.similarity}
-                                    strokeOpacity={focusKey ? 0.7 : 0.25}
-                                />
-                            );
-                        })}
-                    </g>
-                    {words.map(word => {
-                        const dimmed = focusKey !== null && word.key !== focusKey && !focusNeighbors.has(word.key);
-                        const selected = word.key === context.selectedTermKey;
-                        return (
-                            <text
-                                key={word.key}
-                                x={word.x}
-                                y={word.y}
-                                fontSize={word.fontSize}
-                                fontFamily={context.fontFamily}
-                                fontWeight={selected ? 700 : context.fontWeight}
-                                textAnchor="middle"
-                                dominantBaseline="central"
-                                fill={colorOf(word.key)}
-                                opacity={dimmed ? 0.25 : 1}
-                                textDecoration={selected ? "underline" : undefined}
-                                onMouseEnter={() => context.hoverTerm(word.key)}
-                                onMouseLeave={() => context.hoverTerm(null)}
-                                onClick={event => {
-                                    event.stopPropagation();
-                                    context.selectTerm(word.key);
-                                }}
-                                style={{ cursor: "pointer", transition: "opacity 120ms, x 400ms, y 400ms" }}
-                            >
-                                {word.text}
-                            </text>
-                        );
-                    })}
-                </svg>
+                <WordCloud
+                    words={words}
+                    colorOf={colorOf}
+                    fontFamily={context.fontFamily}
+                    fontWeight={context.fontWeight}
+                    links={context.drawnLinks}
+                    showAllLinks={context.showAllLinks}
+                    selectedKey={context.selectedTermKey}
+                    focusKey={context.hoveredTermKey ?? context.selectedTermKey}
+                    onHover={key => context.hoverTerm(key)}
+                    onSelect={key => context.selectTerm(key)}
+                />
                 {colorBy === "venue" && words.length > 0 && <VenueLegend distinctiveness={context.isDistinctiveness} />}
                 {colorBy === "topic" && words.length > 0 && <TopicLegend />}
                 {context.layoutPending && (

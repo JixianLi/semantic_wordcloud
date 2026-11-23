@@ -184,6 +184,19 @@ is the upgrade path if we ever need large graphs.
 - With full text on, the balanced combined cloud tilts toward SC: SC's vocabulary concentrates on a few terms,
   VIS's spreads over many.
 
+## 2.11 Phase 5 as built (2026-11-22)
+- **Distinctiveness (combined scope):** the log-odds ratio with an informative Dirichlet prior (Monroe et al. 2008),
+  where the prior is the pooled frequency worth 1,000 pseudo-occurrences. Word size shows |z|; color shows the sign
+  on the venue diverging scale. It needs no balancing. The pipeline exports raw counts per document for it.
+- **Topics:** Louvain (graphology-communities-louvain, seeded) on the visible similarity links.
+  - Only 3 topics are colored (categorical slots 1–3, the only documented colors that pass the all-pairs
+    color-blindness check); the rest use muted ink. The legend names topics by their top 3 terms and counts
+    unlinked words separately.
+  - Neutral display mode: about 2:1 contrast, accepted.
+- **Graph layout moved into webuvisbox** `src/Renderers/Graph` (branch `feature/word-cloud-graph-renderer`, not
+  pushed): forces, `WordCloudLayout`, a worker with `WordCloudLayoutRunner`, and the `WordCloud` SVG view.
+  Scoring, similarity, topics, colors and legends stay in the scenario.
+
 ## 3. Phases
 1. Repo scaffold, VIS+SC fetch/parse for `abstract`, `keynote`, `website`, and `documents.jsonl` with stats
    (checkpoint: you review the corpus)

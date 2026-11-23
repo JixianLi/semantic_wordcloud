@@ -6,8 +6,7 @@ import {
 import { distinctiveTerms, type Scope, scopeConferences, type ScoredTerm, scoreTerms } from "./TermScoring";
 import { detectTopics, type TopicAssignment } from "./Topics";
 import { blendedSimilarity, indexSimilarities, type SimilarityLink, type TermSimilarities, visibleLinks } from "./Similarity";
-import { type MeasuredWord, measureWords, type PlacedWord } from "./Graph/WordLayout";
-import type { LayoutRequest } from "./Graph/LayoutWorker";
+import { type MeasuredWord, measureWords, type PlacedWord, WordCloudLayoutRunner } from "@core/Renderers/Graph";
 
 // Expected global_data keys (all optional):
 //   corpus_url, neighbors_url: string     where corpus.json / neighbors.json are served
@@ -75,20 +74,18 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
     placedWords: PlacedWord[] = [];
     layoutPending = false;
 
-    private worker: Worker | null = null;
-    private latestRequestId = 0;
+    private layoutRunner: WordCloudLayoutRunner | null = null;
     // relayout() bumps the counter (observable, so the layout reaction re-runs) and sets startFresh (not observable),
     // which that next run reads once to ignore the previous positions.
     private relayoutCounter = 0;
     private startFresh = false;
 
     constructor() {
-        makeAutoObservable<this, "worker" | "latestRequestId" | "startFresh">(this, {
+        makeAutoObservable<this, "layoutRunner" | "startFresh">(this, {
             corpus: observable.ref,
             similarities: observable.ref,
             placedWords: observable.ref,
-            worker: false,
-            latestRequestId: false,
+            layoutRunner: false,
             startFresh: false,
         });
     }
@@ -150,18 +147,13 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         };
     }
 
-    // The worker lives as long as the page: GlobalContext has no teardown hook, so switching scenarios leaves it idle.
+    // The runner's worker lives as long as the page: GlobalContext has no teardown hook, so switching scenarios
+    // leaves it idle.
     private startLayoutWorker(): void {
-        this.worker = new Worker(new URL("./Graph/LayoutWorker.ts", import.meta.url), { type: "module" });
-        this.worker.onmessage = (event: MessageEvent<{ requestId: number; placed: PlacedWord[] }>) => {
-            if (event.data.requestId !== this.latestRequestId) {
-                return;
-            }
-            runInAction(() => {
-                this.placedWords = event.data.placed;
-                this.layoutPending = false;
-            });
-        };
+        this.layoutRunner = new WordCloudLayoutRunner(placed => runInAction(() => {
+            this.placedWords = placed;
+            this.layoutPending = false;
+        }));
         reaction(
             () => ({ words: this.measuredWords, links: this.layoutLinks, aspectRatio: this.aspectRatio,
                      linkStrength: this.linkStrength, relayout: this.relayoutCounter }),
@@ -169,16 +161,10 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
                 const fresh = this.startFresh;
                 this.startFresh = false;
                 const previousPositions = fresh ? {} : Object.fromEntries(this.placedWords.map(word => [word.key, { x: word.x, y: word.y }]));
-                const request: LayoutRequest = {
-                    requestId: ++this.latestRequestId,
-                    words,
-                    links,
-                    options: { aspectRatio, linkStrength, previousPositions },
-                };
                 runInAction(() => {
                     this.layoutPending = true;
                 });
-                this.worker?.postMessage(request);
+                this.layoutRunner?.request(words, links, { aspectRatio, linkStrength, previousPositions });
             },
             { delay: LAYOUT_DELAY_MS, fireImmediately: true },
         );
