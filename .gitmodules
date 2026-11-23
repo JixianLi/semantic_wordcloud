@@ -1,0 +1,3 @@
+[submodule "web/vendor/webuvisbox"]
+	path = web/vendor/webuvisbox
+	url = https://github.com/JixianLi/webuvisbox.git
