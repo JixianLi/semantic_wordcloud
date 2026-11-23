@@ -27,7 +27,7 @@ import httpx
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
 
-from ..cached_http import CachedHttpClient, NotFoundError
+from ..polite_http import PoliteHttpClient, NotFoundError
 from ..documents import Document
 from ..text_cleaning import normalize_whitespace, remove_urls_and_emails
 
@@ -66,7 +66,7 @@ PDF_BODY_START = re.compile(r"^\s*(\d+\.?\s+)?(introduction|motivation)\b", re.I
 PDF_BODY_END = re.compile(r"^\s*(\d+\.?\s+)?(references|bibliography|acknowledg(e)?ments?)\s*$", re.IGNORECASE | re.MULTILINE)
 
 
-def collect_documents(client: CachedHttpClient, entries: list[Document], matches_path: Path) -> list[Document]:
+def collect_documents(client: PoliteHttpClient, entries: list[Document], matches_path: Path) -> list[Document]:
     candidates = [entry for entry in entries
                   if entry.source == "accepted_entries"
                   and entry.track in FULLTEXT_TRACKS[entry.conference]
@@ -103,7 +103,7 @@ def surname(name: str) -> str:
     return words[-1] if words else ""
 
 
-def find_preprints(client: CachedHttpClient, entries: list[Document]) -> list[tuple[Document, dict]]:
+def find_preprints(client: PoliteHttpClient, entries: list[Document]) -> list[tuple[Document, dict]]:
     matches, skipped_batches = [], 0
     for start in range(0, len(entries), TITLES_PER_QUERY):
         batch = entries[start:start + TITLES_PER_QUERY]
@@ -164,7 +164,7 @@ def write_matches(matches: list[tuple[Document, dict]], path: Path) -> None:
                              entry.title, preprint["title"]])
 
 
-def fetch_body_text(client: CachedHttpClient, arxiv_id: str) -> tuple[str, str]:
+def fetch_body_text(client: PoliteHttpClient, arxiv_id: str) -> tuple[str, str]:
     try:
         text = html_body_text(client.get_text(HTML_URL.format(arxiv_id=arxiv_id)))
         if len(text.split()) >= MIN_FULLTEXT_WORDS:

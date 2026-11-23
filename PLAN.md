@@ -19,11 +19,14 @@ SC is fetched at 1 request/s. Every raw response is cached on disk, so we fetch 
 
 ```
 semantic_wordcloud/
-├── pipeline/                      Python (uv), offline, produces static artifacts
+├── scripts/                       Python (uv), every network fetch: fetch-web, fetch-papers (corpus_fetch package)
+│   ├── config/                    which pages and presentation types count
+│   └── src/corpus_fetch/
+│       ├── sources/               one module per site (fetch + parse): vis2026.py, sc26.py, arxiv_fulltext.py
+│       └── polite_http.py         permanent on-disk HTTP cache + per-host rate limit (the fetch/parse stage boundary)
+├── pipeline/                      Python (uv), offline, produces static artifacts from documents.jsonl
 │   ├── pyproject.toml
 │   └── semantic_wordcloud/
-│       ├── sources/               one module per site (fetch + parse): vis2026.py, sc26.py; arxiv.py in Phase 4
-│       ├── cached_http.py         permanent on-disk HTTP cache + per-host rate limit (the fetch/parse stage boundary)
 │       ├── terms/                 tokenize, lemmatize, phrase extraction
 │       ├── weighting/             BM25
 │       ├── semantics/             term–term similarity (co-occurrence, embedding)

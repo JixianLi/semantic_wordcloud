@@ -1,6 +1,6 @@
 """Stage 2: terms, phrases, background IDF from the Brown Corpus, BM25 weights, and the web export.
 
-Run: uv run build-terms   (needs data/interim/documents.jsonl from collect-corpus)
+Run: uv run build-terms   (needs data/interim/documents.jsonl from fetch-web and fetch-papers)
 
 BM25 term weight (Robertson & Zaragoza 2009, "The Probabilistic Relevance Framework: BM25 and Beyond"):
     w(t, d) = idf_bg(t) · tf(t,d)·(k1 + 1) / (tf(t,d) + k1·(1 − b + b·|d|/avgdl))
@@ -27,8 +27,8 @@ from pathlib import Path
 
 import nltk
 
-from .collect_corpus import CONFIG_DIR, DATA_DIR, DOCUMENTS_PATH
-from .documents import read_documents
+from corpus_fetch.documents import read_documents
+from corpus_fetch.fetch_web import DATA_DIR, DOCUMENTS_PATH
 from .tokenize_corpus import display_form, load_language, read_term_list, term_key, word_tokens
 
 BM25_K1 = 1.2
@@ -41,6 +41,7 @@ MIN_ENTITY_SHARE = 0.5
 MIN_REPEATED_SENTENCE_WORDS = 6
 NON_WORD = re.compile(r"\W+")
 MAX_TERMS_PER_DOCUMENT = 200
+CONFIG_DIR = Path(__file__).resolve().parents[2] / "config"
 NLTK_DATA_DIR = DATA_DIR / "external" / "nltk_data"
 TERM_TOKENS_PATH = DATA_DIR / "interim" / "term_tokens.jsonl"
 REPORT_PATH = DATA_DIR / "interim" / "terms_report.md"

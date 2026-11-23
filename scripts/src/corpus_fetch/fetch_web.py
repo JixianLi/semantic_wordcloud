@@ -1,24 +1,26 @@
-"""Stage 1: fetch every source (cached) and write data/interim/documents.jsonl plus a corpus report.
+"""Fetch the conference programs, keynote abstracts and website pages of VIS 2026 and SC26 (cached, rate-limited per
+host) and write data/interim/documents.jsonl plus a corpus report. Full text of preprints is added by fetch-papers.
 
-Run: uv run collect-corpus
+Run: uv run --project scripts fetch-web [--seconds-between-requests HOST=SECONDS ...]
 """
 
+import argparse
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .cached_http import CachedHttpClient
+from .polite_http import PoliteHttpClient, parse_interval_overrides
 from .documents import Document, write_documents
-from .sources import arxiv_fulltext, sc26, vis2026
+from .sources import sc26, vis2026
 
-PIPELINE_DIR = Path(__file__).resolve().parents[2]
-CONFIG_DIR = PIPELINE_DIR / "config"
-DATA_DIR = PIPELINE_DIR.parent / "data"
+SCRIPTS_DIR = Path(__file__).resolve().parents[2]
+CONFIG_DIR = SCRIPTS_DIR / "config"
+DATA_DIR = SCRIPTS_DIR.parent / "data"
+RAW_CACHE_DIR = DATA_DIR / "raw"
 DOCUMENTS_PATH = DATA_DIR / "interim" / "documents.jsonl"
 REPORT_PATH = DATA_DIR / "interim" / "corpus_report.md"
-FULLTEXT_MATCHES_PATH = DATA_DIR / "interim" / "fulltext_matches.tsv"
 # Crawl delays: ieeevis.org's and arxiv.org's robots.txt (10 s, 15 s); others 1 s. The arXiv API asks for 3 s but
-# answered 429 at that pace, so it gets 5 s (and CachedHttpClient backs off on 429).
+# answered 429 at that pace, so it gets 5 s (and PoliteHttpClient backs off on 429).
 SECONDS_BETWEEN_REQUESTS_BY_HOST = {"ieeevis.org": 10.0, "arxiv.org": 15.0, "export.arxiv.org": 5.0}
 WORD = re.compile(r"\w+")
 # An entry whose text beyond its title is shorter than this has no abstract to speak of (e.g. a workshop talk listed
@@ -29,11 +31,34 @@ MIN_WORDS_FOR_TITLE_IDENTITY = 5
 
 
 def main() -> None:
-    client = CachedHttpClient(DATA_DIR / "raw", SECONDS_BETWEEN_REQUESTS_BY_HOST)
+    client = polite_client(parse_arguments(__doc__))
     documents = vis2026.collect_documents(client, CONFIG_DIR) + sc26.collect_documents(client, CONFIG_DIR)
     documents = [document for document in documents if content_word_count(document) >= MIN_CONTENT_WORDS]
     documents = drop_duplicate_works(documents)
-    documents += arxiv_fulltext.collect_documents(client, documents, FULLTEXT_MATCHES_PATH)
+    write_corpus(documents)
+    print(client.traffic_summary())
+
+
+def parse_arguments(description: str) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--seconds-between-requests", action="append", default=[], metavar="HOST=SECONDS",
+                        help="override the minimum interval for one host; repeatable. Raising it is always fine; "
+                             "lowering it below a site's robots.txt crawl delay is not.")
+    return parser.parse_args()
+
+
+def polite_client(arguments: argparse.Namespace) -> PoliteHttpClient:
+    try:
+        overrides = parse_interval_overrides(arguments.seconds_between_requests)
+    except ValueError as error:
+        raise SystemExit(f"--seconds-between-requests: {error}")
+    intervals = {**SECONDS_BETWEEN_REQUESTS_BY_HOST, **overrides}
+    client = PoliteHttpClient(RAW_CACHE_DIR, intervals)
+    print(client.describe_intervals())
+    return client
+
+
+def write_corpus(documents: list[Document]) -> None:
     write_documents(documents, DOCUMENTS_PATH)
     REPORT_PATH.write_text(corpus_report(documents))
     print(f"{len(documents)} documents -> {DOCUMENTS_PATH}\nreport -> {REPORT_PATH}")

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import time
+from collections import Counter
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -16,7 +17,7 @@ class NotFoundError(Exception):
     """A 404, live or remembered: the cache keeps a marker so a missing page is not requested again."""
 
 
-class CachedHttpClient:
+class PoliteHttpClient:
     """GET with a permanent on-disk cache and a minimum interval between requests to the same host.
 
     Cache layout: <cache_dir>/<host>/<sha256(url)>.body plus a .json sidecar holding the url and status, so a cached
@@ -28,6 +29,8 @@ class CachedHttpClient:
         self.seconds_between_requests_by_host = seconds_between_requests_by_host
         self.default_seconds = default_seconds
         self.last_request_time_by_host: dict[str, float] = {}
+        self.cache_hits_by_host: Counter = Counter()
+        self.requests_by_host: Counter = Counter()
         self.client = httpx.Client(headers={"User-Agent": USER_AGENT}, follow_redirects=True, timeout=60)
 
     def _paths(self, url: str) -> tuple[Path, Path]:
@@ -45,10 +48,13 @@ class CachedHttpClient:
 
     def get(self, url: str) -> bytes:
         body_path, meta_path = self._paths(url)
+        host = urlparse(url).netloc
         if body_path.exists():
+            self.cache_hits_by_host[host] += 1
             return body_path.read_bytes()
         not_found_path = body_path.with_suffix(".404")
         if not_found_path.exists():
+            self.cache_hits_by_host[host] += 1
             raise NotFoundError(url)
         response = self._get_with_backoff(url)
         if response.status_code == 404:
@@ -70,6 +76,7 @@ class CachedHttpClient:
         host = urlparse(url).netloc
         for attempt in range(MAX_ATTEMPTS):
             self._wait_for_host(host)
+            self.requests_by_host[host] += 1
             response = self.client.get(url)
             if response.status_code not in RETRY_STATUSES:
                 return response
@@ -85,3 +92,23 @@ class CachedHttpClient:
 
     def get_json(self, url: str):
         return json.loads(self.get(url))
+
+    def describe_intervals(self) -> str:
+        hosts = ", ".join(f"{host} {seconds:g} s" for host, seconds in sorted(self.seconds_between_requests_by_host.items()))
+        return f"Minimum interval between requests: {hosts}; any other host {self.default_seconds:g} s"
+
+    def traffic_summary(self) -> str:
+        hosts = sorted(set(self.cache_hits_by_host) | set(self.requests_by_host))
+        rows = [f"  {host}: {self.requests_by_host[host]} requests, {self.cache_hits_by_host[host]} from cache" for host in hosts]
+        return "\n".join(["Traffic by host:"] + rows)
+
+
+def parse_interval_overrides(overrides: list[str]) -> dict[str, float]:
+    """--seconds-between-requests values, each HOST=SECONDS (e.g. arxiv.org=20)."""
+    parsed = {}
+    for override in overrides:
+        host, separator, seconds = override.partition("=")
+        if not separator or not host:
+            raise ValueError(f"expected HOST=SECONDS, got {override!r}")
+        parsed[host] = float(seconds)
+    return parsed

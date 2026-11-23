@@ -17,7 +17,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from icalendar import Calendar
 
-from ..cached_http import CachedHttpClient
+from ..polite_http import PoliteHttpClient
 from ..documents import Document
 from ..text_cleaning import drop_sections, html_to_text, normalize_whitespace, remove_urls_and_emails, strip_heading_marks
 
@@ -37,7 +37,7 @@ PRESENTATION_PREFIX = re.compile(r"[a-z_]+?(?=\d)")
 METADATA_PARAGRAPH = re.compile(r"^[A-Z][A-Za-z/&() -]{1,40}:\s")
 
 
-def collect_documents(client: CachedHttpClient, config_dir: Path) -> list[Document]:
+def collect_documents(client: PoliteHttpClient, config_dir: Path) -> list[Document]:
     type_by_prefix = read_presentation_types(config_dir / "sc26_presentation_types.tsv")
     documents = []
     for presentation in collect_presentations(client):
@@ -61,7 +61,7 @@ def presentation_prefix(presentation_id: str) -> str:
     return PRESENTATION_PREFIX.match(presentation_id).group(0)
 
 
-def collect_presentations(client: CachedHttpClient) -> list[dict]:
+def collect_presentations(client: PoliteHttpClient) -> list[dict]:
     """Every presentation reachable from the program, each once (a presentation can sit in several sessions)."""
     session_by_presentation: dict[str, str] = {}
     session_title_by_id: dict[str, str] = {}
@@ -78,7 +78,7 @@ def collect_presentations(client: CachedHttpClient) -> list[dict]:
     return presentations
 
 
-def enumerate_session_ids(client: CachedHttpClient) -> set[str]:
+def enumerate_session_ids(client: PoliteHttpClient) -> set[str]:
     listing_urls = [DAY_FRAGMENT_URL.format(day=day) for day in PROGRAM_DAYS] + [POSTERS_URL]
     session_ids = set()
     for url in listing_urls:
@@ -91,7 +91,7 @@ def parse_session_title(session_html: str) -> str:
     return normalize_whitespace(title.get_text(" ")) if title else ""
 
 
-def parse_calendar_entry(client: CachedHttpClient, presentation_id: str, session_id: str) -> dict:
+def parse_calendar_entry(client: PoliteHttpClient, presentation_id: str, session_id: str) -> dict:
     """Title, abstract and tags from the presentation's ICS export.
 
     Its DESCRIPTION is paragraphs: the people ("Name, Name (Affiliation)"; absent for breaks and ceremonies), the
@@ -150,7 +150,7 @@ def presentation_document(presentation: dict, source: str, track: str) -> Docume
     )
 
 
-def fetch_website_items(client: CachedHttpClient) -> list[dict]:
+def fetch_website_items(client: PoliteHttpClient) -> list[dict]:
     items = []
     for kind in ("pages", "posts"):
         page = 1
@@ -163,7 +163,7 @@ def fetch_website_items(client: CachedHttpClient) -> list[dict]:
     return items
 
 
-def collect_website_pages(client: CachedHttpClient, selection_path: Path) -> list[Document]:
+def collect_website_pages(client: PoliteHttpClient, selection_path: Path) -> list[Document]:
     with selection_path.open() as file:
         row_by_link = {row["link"]: row for row in csv.DictReader(file, delimiter="\t") if row["include"] == "yes"}
     documents = []

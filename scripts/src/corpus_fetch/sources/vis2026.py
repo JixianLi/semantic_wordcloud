@@ -16,7 +16,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from ..cached_http import CachedHttpClient
+from ..polite_http import PoliteHttpClient
 from ..documents import Document
 from ..text_cleaning import drop_sections, markdown_to_text, normalize_whitespace
 
@@ -39,7 +39,7 @@ SECTION_HEADING = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
 BIO_HEADING = re.compile(r"^(bio|about the speaker)", re.IGNORECASE)
 
 
-def collect_documents(client: CachedHttpClient, config_dir: Path) -> list[Document]:
+def collect_documents(client: PoliteHttpClient, config_dir: Path) -> list[Document]:
     return [
         *collect_program_entries(client),
         *collect_tutorials(client),
@@ -48,7 +48,7 @@ def collect_documents(client: CachedHttpClient, config_dir: Path) -> list[Docume
     ]
 
 
-def collect_program_entries(client: CachedHttpClient) -> list[Document]:
+def collect_program_entries(client: PoliteHttpClient) -> list[Document]:
     soup = BeautifulSoup(client.get_text(PROGRAM_LISTING_URL), "lxml")
     documents = []
     for card in soup.select("article.program-card"):
@@ -75,7 +75,7 @@ def collect_program_entries(client: CachedHttpClient) -> list[Document]:
     return documents
 
 
-def collect_tutorials(client: CachedHttpClient) -> list[Document]:
+def collect_tutorials(client: PoliteHttpClient) -> list[Document]:
     tsv = client.get_text(REPO_RAW_URL + "src/data/early_program/tutorials_list.tsv")
     rows = list(csv.DictReader(io.StringIO(tsv), delimiter="\t"))
     documents = []
@@ -96,7 +96,7 @@ def collect_tutorials(client: CachedHttpClient) -> list[Document]:
     return documents
 
 
-def collect_keynotes(client: CachedHttpClient) -> list[Document]:
+def collect_keynotes(client: PoliteHttpClient) -> list[Document]:
     documents = []
     for page_path, heading_has_speaker_prefix in KEYNOTE_PAGES.items():
         markdown = client.get_text(REPO_RAW_URL + "src/pages/" + page_path)
@@ -140,7 +140,7 @@ def split_talk_abstracts(markdown: str, heading_has_speaker_prefix: bool) -> lis
     return talks
 
 
-def collect_website_pages(client: CachedHttpClient, selection_path: Path) -> list[Document]:
+def collect_website_pages(client: PoliteHttpClient, selection_path: Path) -> list[Document]:
     documents = []
     with selection_path.open() as file:
         for row in csv.DictReader(file, delimiter="\t"):
