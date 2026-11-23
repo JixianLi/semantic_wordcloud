@@ -36,6 +36,10 @@ export function venueNeutralInk(mode: DisplayMode, text: string): string {
     return mode === "bright" ? BRIGHT_NEUTRAL_INK : text;
 }
 
+export function uncoloredTopicInk(mode: DisplayMode, textSecondary: string): string {
+    return mode === "bright" ? BRIGHT_NEUTRAL_INK : textSecondary;
+}
+
 export function venuePoles(mode: DisplayMode): { vis: string; sc: string } {
     return POLES[mode] ?? POLES.dark;
 }

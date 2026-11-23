@@ -9,7 +9,7 @@ import { Panel } from "@core/Panels/Panel";
 import { useScenario } from "@core/ScenarioManager/ScenarioManager";
 import type { SemanticWordCloudGlobalContext } from "../SemanticWordCloudGlobalContext";
 import { WordCloud } from "@core/Renderers/Graph";
-import { topicColors, venueColorScale, venueNeutralInk, venuePoles } from "../WordColors";
+import { topicColors, uncoloredTopicInk, venueColorScale, venueNeutralInk, venuePoles } from "../WordColors";
 import { TOPIC_COLOR_COUNT } from "../Topics";
 
 // Distinctiveness color: venue share = 0.5 − 0.5·tanh(z / Z_COLOR_SCALE), so |z| of about 4 and more reaches the
@@ -43,6 +43,7 @@ export default observer(function CloudPanel() {
     const neutralInk = venueNeutralInk(tokens.mode, tokens.text);
     const venueColor = venueColorScale(tokens.mode, neutralInk);
     const topicPalette = topicColors(tokens.mode);
+    const uncoloredInk = uncoloredTopicInk(tokens.mode, tokens.textSecondary);
     const topicByKey = colorBy === "topic" ? context.topics.topicByKey : new Map<string, number>();
     const topicColorSlots = colorBy === "topic" ? context.topicColorSlots : new Map<number, number>();
     const scoredByKey = context.scoredTermByKey;
@@ -50,7 +51,7 @@ export default observer(function CloudPanel() {
         if (colorBy === "topic") {
             const topic = topicByKey.get(key);
             const slot = topic === undefined ? undefined : topicColorSlots.get(topic);
-            return slot !== undefined ? topicPalette[slot] : tokens.textSecondary;
+            return slot !== undefined ? topicPalette[slot] : uncoloredInk;
         }
         const scored = scoredByKey.get(key);
         if (!scored || scored.score <= 0) {
@@ -98,6 +99,7 @@ const TopicLegend = observer(function TopicLegend() {
     const context = useScenario().globalContext as SemanticWordCloudGlobalContext;
     const tokens = useTheme().tokens;
     const palette = topicColors(tokens.mode);
+    const uncoloredInk = uncoloredTopicInk(tokens.mode, tokens.textSecondary);
     const slots = context.topicColorSlots;
     const topics = context.topics.topics;
     const linkedTopics = topics.filter(topic => topic.keys.length > 1 || slots.has(topic.id));
@@ -124,7 +126,7 @@ const TopicLegend = observer(function TopicLegend() {
                     <ButtonBase key={topic.id} disabled={disabled} onClick={() => context.toggleTopicColor(topic.id)}
                                 aria-pressed={slot !== undefined}
                                 sx={{ ...row, opacity: disabled ? 0.55 : 1, "&:hover": { bgcolor: tokens.controlFill } }}>
-                        <Box component="span" sx={{ ...swatch, bgcolor: slot !== undefined ? palette[slot] : tokens.textSecondary }} />
+                        <Box component="span" sx={{ ...swatch, bgcolor: slot !== undefined ? palette[slot] : uncoloredInk }} />
                         <Typography variant="caption" noWrap sx={{ color: slot !== undefined ? "text.primary" : "text.secondary" }}>
                             {`${topic.label} (${topic.keys.length})`}
                         </Typography>
@@ -133,7 +135,7 @@ const TopicLegend = observer(function TopicLegend() {
             })}
             {unlinkedCount > 0 && (
                 <Typography variant="caption" sx={{ ...row }}>
-                    <Box component="span" sx={{ ...swatch, bgcolor: tokens.textSecondary }} />
+                    <Box component="span" sx={{ ...swatch, bgcolor: uncoloredInk }} />
                     {`${unlinkedCount} unlinked word${unlinkedCount === 1 ? "" : "s"}`}
                 </Typography>
             )}
