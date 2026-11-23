@@ -6,8 +6,9 @@
 // contrast ≥ 3:1 and color-vision-deficiency separation (protan ΔE 19–22). The neutral display mode's mid-gray surface
 // needs lighter tints (the standard poles reach only 2.1–2.3:1 there). The midpoint is a readable ink rather than the
 // reference light-gray midpoint: in a word cloud the words are the marks, and a gray close to the surface would make
-// shared terms vanish. Bright mode uses its secondary text gray (6.1:1 on the canvas the cloud sits on), so shared
-// terms read as gray rather than black; the dark modes use their primary text ink.
+// shared terms vanish. Bright mode uses a mid gray, BRIGHT_NEUTRAL_INK: clearly gray rather than near-black, at
+// 3.5:1 on the canvas the cloud sits on (#EEF0F0), so even 10 px words stay legible. The dark modes use their primary
+// text ink.
 
 import { interpolateLab } from "d3-interpolate";
 
@@ -26,8 +27,10 @@ export function venueColorScale(mode: DisplayMode, neutralInk: string): (scShare
     return scShare => scShare < 0.5 ? towardVis((0.5 - scShare) * 2) : towardSc((scShare - 0.5) * 2);
 }
 
-export function venueNeutralInk(mode: DisplayMode, text: string, textSecondary: string): string {
-    return mode === "bright" ? textSecondary : text;
+const BRIGHT_NEUTRAL_INK = "#7A8086";
+
+export function venueNeutralInk(mode: DisplayMode, text: string): string {
+    return mode === "bright" ? BRIGHT_NEUTRAL_INK : text;
 }
 
 export function venuePoles(mode: DisplayMode): { vis: string; sc: string } {

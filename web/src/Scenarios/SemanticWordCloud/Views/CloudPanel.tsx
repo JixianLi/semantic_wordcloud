@@ -40,7 +40,7 @@ export default observer(function CloudPanel() {
     const words = context.placedWords;
 
     const colorBy = context.effectiveColorBy;
-    const neutralInk = venueNeutralInk(tokens.mode, tokens.text, tokens.textSecondary);
+    const neutralInk = venueNeutralInk(tokens.mode, tokens.text);
     const venueColor = venueColorScale(tokens.mode, neutralInk);
     const topicPalette = topicColors(tokens.mode);
     const topicByKey = colorBy === "topic" ? context.topics.topicByKey : new Map<string, number>();
@@ -144,7 +144,7 @@ const TopicLegend = observer(function TopicLegend() {
 const VenueLegend = observer(function VenueLegend({ distinctiveness }: { distinctiveness: boolean }) {
     const tokens = useTheme().tokens;
     const poles = venuePoles(tokens.mode);
-    const scale = venueColorScale(tokens.mode, venueNeutralInk(tokens.mode, tokens.text, tokens.textSecondary));
+    const scale = venueColorScale(tokens.mode, venueNeutralInk(tokens.mode, tokens.text));
     const stops = [0, 0.25, 0.5, 0.75, 1].map(share => `${scale(share)} ${share * 100}%`).join(", ");
     return (
         <Box sx={{ position: "absolute", left: 12, bottom: 10, width: 220 }}>
