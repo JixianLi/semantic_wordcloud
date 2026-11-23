@@ -3,7 +3,8 @@ import type { GlobalContext } from "@core/Types/GlobalContext";
 import {
     type Conference, type Corpus, type CorpusDocument, loadCorpus, loadNeighbors, type Source, SOURCES, trackKey,
 } from "./CorpusData";
-import { type Scope, scopeConferences, type ScoredTerm, scoreTerms } from "./TermScoring";
+import { distinctiveTerms, type Scope, scopeConferences, type ScoredTerm, scoreTerms } from "./TermScoring";
+import { detectTopics, type TopicAssignment } from "./Topics";
 import { blendedSimilarity, indexSimilarities, type SimilarityLink, type TermSimilarities, visibleLinks } from "./Similarity";
 import { type MeasuredWord, measureWords, type PlacedWord } from "./Graph/WordLayout";
 import type { LayoutRequest } from "./Graph/LayoutWorker";
@@ -20,12 +21,17 @@ import type { LayoutRequest } from "./Graph/LayoutWorker";
 //   links_per_term: number
 //   link_strength: number
 //   show_all_links: boolean
+//   measure: "prominence" | "distinctiveness"   distinctiveness (VIS vs SC log-odds) applies to the combined scope
+//   color_by: "venue" | "topic"                 venue applies to the combined scope
 
 const FONT_FAMILY = '"Inter Variable", Inter, system-ui, sans-serif';
 const FONT_WEIGHT = 500;
 const MINIMUM_LINK_SIMILARITY = 0.15;
 // Debounce for layout requests: slider drags settle before the worker starts.
 const LAYOUT_DELAY_MS = 80;
+
+export type Measure = "prominence" | "distinctiveness";
+export type ColorBy = "venue" | "topic";
 
 export interface TermDetail {
     termIndex: number;
@@ -36,6 +42,7 @@ export interface TermDetail {
     corpusDf: number;
     score: number;
     scoreByConference: Record<Conference, number>;
+    zScore?: number;
     scoreBySource: Partial<Record<Source, number>>;
     neighbors: { termIndex: number; display: string; similarity: number; visible: boolean }[];
     documents: { document: CorpusDocument; weight: number }[];
@@ -59,6 +66,8 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
     linksPerTerm = 3;
     linkStrength = 0.6;
     showAllLinks = false;
+    measure: Measure = "prominence";
+    colorBy: ColorBy = "venue";
     aspectRatio = 1.6;
 
     selectedTermKey: string | null = null;
@@ -102,6 +111,8 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         this.linksPerTerm = data.links_per_term ?? this.linksPerTerm;
         this.linkStrength = data.link_strength ?? this.linkStrength;
         this.showAllLinks = data.show_all_links ?? this.showAllLinks;
+        this.measure = data.measure ?? this.measure;
+        this.colorBy = data.color_by ?? this.colorBy;
     }
 
     async asyncInitialize(): Promise<void> {
@@ -134,6 +145,8 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
             links_per_term: this.linksPerTerm,
             link_strength: this.linkStrength,
             show_all_links: this.showAllLinks,
+            measure: this.measure,
+            color_by: this.colorBy,
         };
     }
 
@@ -211,6 +224,14 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         this.linkStrength = strength;
     }
 
+    setMeasure(measure: Measure): void {
+        this.measure = measure;
+    }
+
+    setColorBy(colorBy: ColorBy): void {
+        this.colorBy = colorBy;
+    }
+
     setShowAllLinks(show: boolean): void {
         this.showAllLinks = show;
     }
@@ -249,15 +270,25 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
             this.selectedSources.has(document.source) && !this.excludedTracks.has(trackKey(document)));
     }
 
+    get isDistinctiveness(): boolean {
+        return this.scope === "combined" && this.measure === "distinctiveness";
+    }
+
     get isVenueBalanced(): boolean {
-        return this.scope === "combined" && this.balanceVenues;
+        return this.scope === "combined" && this.balanceVenues && !this.isDistinctiveness;
+    }
+
+    // What color encodes: venue only makes sense with both venues in scope.
+    get effectiveColorBy(): ColorBy {
+        return this.scope === "combined" ? this.colorBy : "topic";
     }
 
     get scoredTerms(): ScoredTerm[] {
         if (!this.corpus) {
             return [];
         }
-        return scoreTerms(this.corpus, this.selectedDocuments, {
+        const score = this.isDistinctiveness ? distinctiveTerms : scoreTerms;
+        return score(this.corpus, this.selectedDocuments, {
             balanceVenues: this.isVenueBalanced,
             includePhrases: this.includePhrases,
             termLimit: this.termLimit,
@@ -287,6 +318,10 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         }
         return visibleLinks(this.scoredTerms.map(scored => scored.termIndex), this.similarities, this.embeddingWeight,
                             this.linksPerTerm, MINIMUM_LINK_SIMILARITY);
+    }
+
+    get topics(): TopicAssignment {
+        return detectTopics(this.measuredWords, this.layoutLinks);
     }
 
     // Links between placed words, by key, for drawing.
@@ -340,6 +375,7 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
             corpusDf: term.df,
             score: scored?.score ?? 0,
             scoreByConference: scored?.scoreByConference ?? { vis: 0, sc: 0 },
+            zScore: scored?.zScore,
             scoreBySource,
             neighbors,
             documents: documents.slice(0, 25),

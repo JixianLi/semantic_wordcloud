@@ -36,9 +36,17 @@ export default observer(function TermDetailPanel() {
                     <>
                         <Typography variant="h6" sx={{ pt: 0.5 }}>{detail.display}</Typography>
 
+                        {detail.zScore !== undefined && (
+                            <>
+                                <SectionTitle>VIS vs SC</SectionTitle>
+                                <Row label="Log-odds z-score" value={`${detail.zScore >= 0 ? "+" : ""}${detail.zScore.toFixed(2)} (${detail.zScore >= 0 ? "VIS" : "SC"})`} />
+                                <Row label="Occurrences in VIS" value={String(detail.scoreByConference.vis)} />
+                                <Row label="Occurrences in SC" value={String(detail.scoreByConference.sc)} />
+                            </>
+                        )}
                         <SectionTitle>Score in the current selection</SectionTitle>
-                        <Row label="Total" value={detail.score.toFixed(1)} />
-                        {context.scope === "combined" && (["vis", "sc"] as const).map(conference => (
+                        {detail.zScore === undefined && <Row label="Total" value={detail.score.toFixed(1)} />}
+                        {context.scope === "combined" && detail.zScore === undefined && (["vis", "sc"] as const).map(conference => (
                             <Row
                                 key={conference}
                                 label={`${CONFERENCE_LABELS[conference]}${context.isVenueBalanced ? " (balanced)" : ""}`}

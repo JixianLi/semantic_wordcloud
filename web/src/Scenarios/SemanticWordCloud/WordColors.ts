@@ -28,3 +28,17 @@ export function venueColorScale(mode: DisplayMode, neutralInk: string): (scShare
 export function venuePoles(mode: DisplayMode): { vis: string; sc: string } {
     return POLES[mode] ?? POLES.dark;
 }
+
+// Topic colors: slots 1-3 of the dataviz reference categorical palette (blue, orange, aqua), the only slots that
+// pass the all-pairs color-vision check. Bright mode uses the light steps, dark and neutral the dark steps; on the
+// neutral mode's mid-gray surface they reach only ~2:1 contrast (no documented trio passes there: lighter tints
+// fail the separation check), accepted because that mode is for judging color, not reading.
+const TOPIC_COLORS: Record<DisplayMode, string[]> = {
+    bright: ["#2a78d6", "#eb6834", "#1baf7a"],
+    dark: ["#3987e5", "#d95926", "#199e70"],
+    neutral: ["#3987e5", "#d95926", "#199e70"],
+};
+
+export function topicColors(mode: DisplayMode): string[] {
+    return TOPIC_COLORS[mode] ?? TOPIC_COLORS.dark;
+}

@@ -7,9 +7,13 @@ import { Panel } from "@core/Panels/Panel";
 import { useScenario } from "@core/ScenarioManager/ScenarioManager";
 import type { SemanticWordCloudGlobalContext } from "../SemanticWordCloudGlobalContext";
 import { layoutBounds } from "../Graph/WordLayout";
-import { venueColorScale, venuePoles } from "../VenueColors";
+import { topicColors, venueColorScale, venuePoles } from "../WordColors";
+import { TOPIC_COLOR_COUNT } from "../Topics";
 
 const VIEW_PADDING = 12;
+// Distinctiveness color: venue share = 0.5 − 0.5·tanh(z / Z_COLOR_SCALE), so |z| of about 4 and more reaches the
+// full pole color and z = 0 (no difference) is neutral ink.
+const Z_COLOR_SCALE = 4;
 
 export default observer(function CloudPanel() {
     const context = useScenario().globalContext as SemanticWordCloudGlobalContext;
@@ -37,13 +41,22 @@ export default observer(function CloudPanel() {
     const bounds = layoutBounds(words);
     const viewBox = [bounds.x - VIEW_PADDING, bounds.y - VIEW_PADDING, bounds.width + 2 * VIEW_PADDING, bounds.height + 2 * VIEW_PADDING].join(" ");
 
-    const colorByVenue = context.scope === "combined";
+    const colorBy = context.effectiveColorBy;
     const venueColor = venueColorScale(tokens.mode, tokens.text);
+    const topicPalette = topicColors(tokens.mode);
+    const topicByKey = colorBy === "topic" ? context.topics.topicByKey : new Map<string, number>();
     const scoredByKey = context.scoredTermByKey;
     const colorOf = (key: string) => {
+        if (colorBy === "topic") {
+            const topic = topicByKey.get(key);
+            return topic !== undefined && topic < TOPIC_COLOR_COUNT ? topicPalette[topic] : tokens.textSecondary;
+        }
         const scored = scoredByKey.get(key);
-        if (!colorByVenue || !scored || scored.score <= 0) {
+        if (!scored || scored.score <= 0) {
             return tokens.text;
+        }
+        if (scored.zScore !== undefined) {
+            return venueColor(0.5 - 0.5 * Math.tanh(scored.zScore / Z_COLOR_SCALE));
         }
         return venueColor(scored.scoreByConference.sc / scored.score);
     };
@@ -113,7 +126,8 @@ export default observer(function CloudPanel() {
                         );
                     })}
                 </svg>
-                {colorByVenue && words.length > 0 && <VenueLegend />}
+                {colorBy === "venue" && words.length > 0 && <VenueLegend distinctiveness={context.isDistinctiveness} />}
+                {colorBy === "topic" && words.length > 0 && <TopicLegend />}
                 {context.layoutPending && (
                     <Typography variant="caption" sx={{ position: "absolute", top: 4, left: 8, color: "text.secondary" }}>
                         Laying out…
@@ -124,7 +138,37 @@ export default observer(function CloudPanel() {
     );
 });
 
-const VenueLegend = observer(function VenueLegend() {
+const TopicLegend = observer(function TopicLegend() {
+    const context = useScenario().globalContext as SemanticWordCloudGlobalContext;
+    const tokens = useTheme().tokens;
+    const palette = topicColors(tokens.mode);
+    const topics = context.topics.topics;
+    const uncolored = topics.slice(TOPIC_COLOR_COUNT);
+    const otherTopicCount = uncolored.filter(topic => topic.keys.length > 1).length;
+    const unlinkedCount = uncolored.filter(topic => topic.keys.length === 1).length;
+    const otherLabel = [
+        otherTopicCount > 0 ? `${otherTopicCount} more topic${otherTopicCount === 1 ? "" : "s"}` : "",
+        unlinkedCount > 0 ? `${unlinkedCount} unlinked word${unlinkedCount === 1 ? "" : "s"}` : "",
+    ].filter(Boolean).join(", ");
+    return (
+        <Box sx={{ position: "absolute", left: 12, bottom: 10, maxWidth: 360 }}>
+            {topics.slice(0, TOPIC_COLOR_COUNT).map(topic => (
+                <Typography key={topic.id} variant="caption" sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
+                    <Box component="span" sx={{ flex: "none", width: 8, height: 8, borderRadius: "2px", bgcolor: palette[topic.id], mr: 0.75 }} />
+                    {topic.label}
+                </Typography>
+            ))}
+            {otherLabel && (
+                <Typography variant="caption" sx={{ display: "flex", alignItems: "center", color: "text.secondary" }}>
+                    <Box component="span" sx={{ flex: "none", width: 8, height: 8, borderRadius: "2px", bgcolor: tokens.textSecondary, mr: 0.75 }} />
+                    {otherLabel}
+                </Typography>
+            )}
+        </Box>
+    );
+});
+
+const VenueLegend = observer(function VenueLegend({ distinctiveness }: { distinctiveness: boolean }) {
     const tokens = useTheme().tokens;
     const poles = venuePoles(tokens.mode);
     const scale = venueColorScale(tokens.mode, tokens.text);
@@ -135,11 +179,11 @@ const VenueLegend = observer(function VenueLegend() {
             <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
                     <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "2px", bgcolor: poles.vis, mr: 0.5 }} />
-                    VIS
+                    {distinctiveness ? "more VIS" : "VIS"}
                 </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary" }}>shared</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>{distinctiveness ? "no difference" : "shared"}</Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    SC
+                    {distinctiveness ? "more SC" : "SC"}
                     <Box component="span" sx={{ display: "inline-block", width: 8, height: 8, borderRadius: "2px", bgcolor: poles.sc, ml: 0.5 }} />
                 </Typography>
             </Box>

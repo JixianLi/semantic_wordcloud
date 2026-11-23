@@ -59,6 +59,31 @@ export default observer(function FiltersPanel() {
                     {SCOPE_OPTIONS.map(option => <ToggleButton key={option.value} value={option.value}>{option.label}</ToggleButton>)}
                 </ToggleButtonGroup>
                 {context.scope === "combined" && (
+                    <>
+                        <SectionTitle>Size shows</SectionTitle>
+                        <ToggleButtonGroup
+                            size="small" exclusive fullWidth value={context.measure}
+                            onChange={(_, value) => value && context.setMeasure(value)}
+                        >
+                            <ToggleButton value="prominence">Prominence</ToggleButton>
+                            <ToggleButton value="distinctiveness">VIS vs SC</ToggleButton>
+                        </ToggleButtonGroup>
+                        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5 }}>
+                            {context.measure === "prominence"
+                                ? "How much a term is used, weighted against general English (BM25)."
+                                : "How strongly a term separates the venues: log-odds z-score (Monroe et al. 2008). Venue size is part of the model, so no balancing is needed."}
+                        </Typography>
+                        <SectionTitle>Color shows</SectionTitle>
+                        <ToggleButtonGroup
+                            size="small" exclusive fullWidth value={context.colorBy}
+                            onChange={(_, value) => value && context.setColorBy(value)}
+                        >
+                            <ToggleButton value="venue">Venue</ToggleButton>
+                            <ToggleButton value="topic">Topic</ToggleButton>
+                        </ToggleButtonGroup>
+                    </>
+                )}
+                {context.scope === "combined" && context.measure === "prominence" && (
                     <Box sx={{ mt: 1 }}>
                         <FormControlLabel
                             control={<Switch size="small" checked={context.balanceVenues} onChange={(_, checked) => context.setBalanceVenues(checked)} />}

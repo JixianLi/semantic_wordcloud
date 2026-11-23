@@ -294,7 +294,9 @@ def export_corpus(documents, vocabulary, display_by_key, idf, background_df, doc
     terms:     [{key, display, tokens, idf, background_df, df}]   df = documents in our corpus containing the term
     documents: [{id, conference, source, track, title, url, term_count, term_indices, weights}]
                term_count = term occurrences in the document (the venue balance uses their sum);
-               term_indices/weights = the document's top MAX_TERMS_PER_DOCUMENT BM25 weights, parallel arrays
+               term_indices/weights = the document's top MAX_TERMS_PER_DOCUMENT BM25 weights, parallel arrays;
+               counts = those terms' raw occurrence counts in the document (for the VIS-vs-SC log-odds comparison).
+               Full-text documents have more distinct terms than the cap, so their counts cover only their top terms.
     """
     terms = [{
         "key": key,
@@ -306,6 +308,7 @@ def export_corpus(documents, vocabulary, display_by_key, idf, background_df, doc
     } for key in vocabulary]
     exported_documents = []
     for document, sequence, weights in zip(documents, term_sequences, weights_by_document):
+        term_frequency = Counter(term.key for term in sequence)
         exported_documents.append({
             "id": document.id,
             "conference": document.conference,
@@ -316,6 +319,7 @@ def export_corpus(documents, vocabulary, display_by_key, idf, background_df, doc
             "term_count": len(sequence),
             "term_indices": [index_by_key[key] for key in weights],
             "weights": [round(weight, 4) for weight in weights.values()],
+            "counts": [term_frequency[key] for key in weights],
         })
     EXPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     EXPORT_PATH.write_text(json.dumps({"bm25": {"k1": BM25_K1, "b": BM25_B, "background": "Brown Corpus (500 samples)"},

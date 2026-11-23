@@ -35,6 +35,8 @@ export interface CorpusDocument {
     // The document's top BM25 weights as parallel arrays: weights[i] is the weight of terms[term_indices[i]].
     term_indices: number[];
     weights: number[];
+    // Raw occurrence counts of the same terms (parallel to term_indices), for the VIS-vs-SC log-odds comparison.
+    counts: number[];
 }
 
 export interface Corpus {
