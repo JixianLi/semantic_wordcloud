@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages --dist dist --nojekyll --message 'Deploy word cloud'"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -43,6 +44,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "gh-pages": "^6.3.0",
     "typescript": "~6.0.3",
     "vite": "^8.0.16"
   }

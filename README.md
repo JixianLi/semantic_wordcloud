@@ -64,3 +64,15 @@ cd web
 npm install
 npm run dev                 # http://localhost:5173, needs web/public/data/corpus.json
 ```
+
+## Deploying to GitHub Pages
+
+The site is served from the `gh-pages` branch at https://jixianli.github.io/semantic_wordcloud/. The data is built
+locally (see above), so deploying is a local step:
+
+```bash
+cd web
+npm run deploy              # builds, then pushes dist/ (app + data) to the gh-pages branch
+```
+
+Only `gh-pages` carries the data files; `main` stays code-only. Each deploy adds about 12 MB to that branch's history.

@@ -4,6 +4,8 @@ import path from "path";
 
 // Aliases, dedupe and the DRAGGABLE_DEBUG / optimizeDeps workarounds follow vendor/webuvisbox/CREATE_SCENARIO.md.
 export default defineConfig({
+  // Relative asset paths: GitHub Pages serves the site under /semantic_wordcloud/, not at the domain root.
+  base: "./",
   plugins: [react()],
   define: { "process.env.DRAGGABLE_DEBUG": "false" },
   resolve: {
