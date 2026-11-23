@@ -118,3 +118,18 @@ review process
 important date
 schedule
 update
+# Full-text genre words, from the full-text cloud: section-numbering numerals (cross-references like "Section III"),
+# the IEEE "Index Terms" label, and paper-writing boilerplate. Brown has never seen them, so they get maximal IDF.
+ii
+iii
+iv
+vi
+vii
+viii
+ix
+index term
+future work
+prior work
+previous work
+related work
+this paper

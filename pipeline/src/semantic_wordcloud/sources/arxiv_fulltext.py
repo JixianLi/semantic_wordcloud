@@ -53,6 +53,15 @@ MIN_FULLTEXT_WORDS = 500
 HTML_DROPPED = [".ltx_authors", ".ltx_abstract", ".ltx_acknowledgements", ".ltx_bibliography", ".ltx_TOC",
                 ".ltx_page_navbar", ".ltx_dates", "math", ".ltx_equation", ".ltx_equationgroup", "nav", "footer",
                 "script", "style", "img", "svg", ".ltx_tag_section", ".ltx_tag_subsection", "h1.ltx_title"]
+# LaTeX macros LaTeXML could not expand appear as .ltx_ERROR. These are template metadata (author lines, ORCID,
+# submission ids): the paragraph that holds one is dropped whole, since it carries names and affiliations.
+METADATA_MACROS = {"\\authororcid", "\\authorfooter", "\\onlineid", "\\vgtccategory", "\\vgtcpapertype",
+                   "\\preprinttext", "\\vgtcinsertpkg", "\\CCScatlist", "\\CCScatTwelve", "\\thanks"}
+# Sections about the paper rather than its content (numbering like "VII" or "A-1" is stripped before matching).
+METADATA_SECTION_TITLE = re.compile(
+    r"^(acknowledge?ments?|funding|ai use statement|use of (generative )?ai|author contributions?"
+    r"|(code and )?data availability|conflicts? of interest)$", re.IGNORECASE)
+SECTION_NUMBER = re.compile(r"^(\d+(\.\d+)*|[IVX]+|[A-Z]([.\-]\d+)*)\.?\s+")
 PDF_BODY_START = re.compile(r"^\s*(\d+\.?\s+)?(introduction|motivation)\b", re.IGNORECASE | re.MULTILINE)
 PDF_BODY_END = re.compile(r"^\s*(\d+\.?\s+)?(references|bibliography|acknowledg(e)?ments?)\s*$", re.IGNORECASE | re.MULTILINE)
 
@@ -177,6 +186,18 @@ def html_body_text(html: str) -> str:
     for selector in HTML_DROPPED:
         for element in article.select(selector):
             element.decompose()
+    for heading in article.select("section > h2, section > h3, section > h4, section > h6"):
+        title = SECTION_NUMBER.sub("", heading.get_text(" ", strip=True)).strip()
+        if METADATA_SECTION_TITLE.match(title) and heading.parent is not None:
+            heading.parent.decompose()
+    for error in article.select(".ltx_ERROR"):
+        if error.decomposed:
+            continue
+        paragraph = error.find_parent(class_=["ltx_para", "ltx_p"])
+        if error.get_text(strip=True) in METADATA_MACROS and paragraph is not None:
+            paragraph.decompose()
+        else:
+            error.decompose()
     return remove_urls_and_emails(normalize_whitespace(article.get_text("\n")))
 
 

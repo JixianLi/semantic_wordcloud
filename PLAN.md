@@ -166,6 +166,24 @@ is the upgrade path if we ever need large graphs.
 - Venue color: a diverging scale VIS blue ← text ink → SC red on the SC share, with poles validated per display
   mode. In single-venue scopes words use the plain text color; community colors are Phase 5.
 
+## 2.10 Phase 4 as built (2026-11-22)
+- Full text comes from arXiv only, matched by title for both conferences (not VIS detail pages: a 10 s crawl delay
+  on ~490 pages). OSF-only preprints are missed.
+- 340 of 1,176 candidate entries matched; all titles are exact after normalization.
+  - VIS: 211, of which 96 of 145 full papers.
+  - SC: 129, of which 49 of 149 papers.
+- Texts: 334 from arXiv HTML, 6 from PDF; about 2.7M words, roughly 7× the rest of the corpus.
+- The arXiv API answered 429 at its documented 3 s pace. The client now paces at 5 s and backs off; in practice
+  it achieved about one query a minute near the end.
+- BM25 avgdl is per source, so the full text's length does not change the weights of abstracts. Full text is
+  off by default.
+- Dropped from full text:
+  - VGTC/IEEE template metadata (`\authorfooter`, `\authororcid` paragraphs: names and affiliations)
+  - acknowledgment, funding, AI-use and data-availability sections
+  - genre words (section numerals, "Index Terms", "future work")
+- With full text on, the balanced combined cloud tilts toward SC: SC's vocabulary concentrates on a few terms,
+  VIS's spreads over many.
+
 ## 3. Phases
 1. Repo scaffold, VIS+SC fetch/parse for `abstract`, `keynote`, `website`, and `documents.jsonl` with stats
    (checkpoint: you review the corpus)
