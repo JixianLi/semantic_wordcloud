@@ -1,0 +1,1 @@
+function e(e,t){return{onPointerEnter:n=>{n.pointerType===`mouse`&&e.setHighlightedMember(t)},onPointerLeave:t=>{t.pointerType===`mouse`&&e.setHighlightedMember(null)},onPointerUp:n=>{n.pointerType!==`mouse`&&e.setHighlightedMember(e.highlightedMember===t?null:t)}}}export{e as t};
