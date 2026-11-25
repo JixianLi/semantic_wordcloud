@@ -1,0 +1,1 @@
+import{t as e}from"./VSUP-EruSJbhD.js";var t=new Map;function n(n,r){let i=`${n}|${r}`;return t.has(i)||t.set(i,new e(4,r,!1,n)),t.get(i)}function r(e,t,n){return e.getColorForTexture(t,1-n)}export{n,r as t};
