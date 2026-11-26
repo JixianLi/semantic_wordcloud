@@ -4,8 +4,8 @@
 //
 // Poles are the dataviz reference diverging pair (blue ↔ red), validated for color-vision-deficiency separation
 // (protan ΔE 19–22) and for contrast ≥ 3:1 on the bright and dark panel surfaces. The neutral display mode uses the
-// dark poles too, so both dark-based modes show the same saturation (OKLCH chroma 0.16); on its #4A4A4A canvas they
-// reach only 2.4:1 (VIS) and 2.7:1 (SC), accepted because that mode is for judging color. Lighter tints would pass
+// dark poles too, so both dark-based modes show the same saturation (OKLCH chroma 0.16); on its #505050 panel gray they
+// reach only 2.2:1 (VIS) and 2.5:1 (SC), accepted because that mode is for judging color. Lighter tints would pass
 // 3:1 but at about half the chroma.
 //
 // The midpoint is a readable ink rather than the reference light-gray midpoint: in a word cloud the words are the

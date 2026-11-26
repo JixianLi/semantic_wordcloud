@@ -18,7 +18,17 @@ import { usePinchZoom } from "./PinchZoom";
 // full pole color and z = 0 (no difference) is neutral ink.
 const Z_COLOR_SCALE = 4;
 
-export default observer(function CloudPanel() {
+export default function CloudPanel() {
+    return (
+        <Panel panelName="Cloud">
+            <CloudBody />
+        </Panel>
+    );
+}
+
+// Under <Panel> so that useTheme returns the panel's theme: in neutral mode Panel gives non-scene panels their own
+// (dark) tokens, which a call in CloudPanel itself would not see.
+const CloudBody = observer(function CloudBody() {
     const context = useScenario().globalContext as SemanticWordCloudGlobalContext;
     const theme = useTheme();
     const tokens = theme.tokens;
@@ -68,43 +78,41 @@ export default observer(function CloudPanel() {
     };
 
     return (
-        <Panel panelName="Cloud">
-            <Box ref={containerRef} sx={{ width: "100%", height: "100%", position: "relative", minHeight: 0, overflow: "hidden" }}>
-                {context.loadError && <Typography color="error" sx={{ p: 2 }}>{context.loadError}</Typography>}
-                {!context.corpus && !context.loadError && <Typography sx={{ p: 2, color: "text.secondary" }}>Loading corpus…</Typography>}
-                {context.corpus && context.scoredTerms.length === 0 && (
-                    <Typography sx={{ p: 2, color: "text.secondary" }}>No documents selected.</Typography>
-                )}
-                <Box ref={zoomedRef} sx={{ position: "absolute", inset: 0, transformOrigin: "0 0" }}>
-                    <WordCloud
-                        words={words}
-                        colorOf={colorOf}
-                        fontFamily={context.fontFamily}
-                        fontWeight={context.fontWeight}
-                        links={context.drawnLinks}
-                        showAllLinks={context.showAllLinks}
-                        selectedKey={context.selectedTermKey}
-                        focusKey={context.hoveredTermKey ?? context.selectedTermKey}
-                        onHover={key => context.hoverTerm(key)}
-                        onSelect={key => context.selectTerm(key)}
-                    />
-                </Box>
-                {pinchZoom.zoomed && (
-                    <Button size="small" variant="outlined" color="inherit" onClick={pinchZoom.reset}
-                            sx={{ position: "absolute", top: 8, right: 8, color: "text.primary", borderColor: tokens.border,
-                                bgcolor: tokens.surface, "&:hover": { bgcolor: tokens.surface } }}>
-                        Reset zoom
-                    </Button>
-                )}
-                {colorBy === "venue" && words.length > 0 && <VenueLegend distinctiveness={context.isDistinctiveness} />}
-                {colorBy === "topic" && words.length > 0 && <TopicLegend />}
-                {context.layoutPending && (
-                    <Typography variant="caption" sx={{ position: "absolute", top: 4, left: 8, color: "text.secondary" }}>
-                        Laying out…
-                    </Typography>
-                )}
+        <Box ref={containerRef} sx={{ width: "100%", height: "100%", position: "relative", minHeight: 0, overflow: "hidden" }}>
+            {context.loadError && <Typography color="error" sx={{ p: 2 }}>{context.loadError}</Typography>}
+            {!context.corpus && !context.loadError && <Typography sx={{ p: 2, color: "text.secondary" }}>Loading corpus…</Typography>}
+            {context.corpus && context.scoredTerms.length === 0 && (
+                <Typography sx={{ p: 2, color: "text.secondary" }}>No documents selected.</Typography>
+            )}
+            <Box ref={zoomedRef} sx={{ position: "absolute", inset: 0, transformOrigin: "0 0" }}>
+                <WordCloud
+                    words={words}
+                    colorOf={colorOf}
+                    fontFamily={context.fontFamily}
+                    fontWeight={context.fontWeight}
+                    links={context.drawnLinks}
+                    showAllLinks={context.showAllLinks}
+                    selectedKey={context.selectedTermKey}
+                    focusKey={context.hoveredTermKey ?? context.selectedTermKey}
+                    onHover={key => context.hoverTerm(key)}
+                    onSelect={key => context.selectTerm(key)}
+                />
             </Box>
-        </Panel>
+            {pinchZoom.zoomed && (
+                <Button size="small" variant="outlined" color="inherit" onClick={pinchZoom.reset}
+                        sx={{ position: "absolute", top: 8, right: 8, color: "text.primary", borderColor: tokens.border,
+                            bgcolor: tokens.surface, "&:hover": { bgcolor: tokens.surface } }}>
+                    Reset zoom
+                </Button>
+            )}
+            {colorBy === "venue" && words.length > 0 && <VenueLegend distinctiveness={context.isDistinctiveness} />}
+            {colorBy === "topic" && words.length > 0 && <TopicLegend />}
+            {context.layoutPending && (
+                <Typography variant="caption" sx={{ position: "absolute", top: 4, left: 8, color: "text.secondary" }}>
+                    Laying out…
+                </Typography>
+            )}
+        </Box>
     );
 });
 
