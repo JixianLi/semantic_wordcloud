@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable, reaction, runInAction } from "mobx";
+import { type IReactionDisposer, makeAutoObservable, observable, reaction, runInAction } from "mobx";
 import type { GlobalContext } from "@core/Types/GlobalContext";
 import {
     type Conference, type Corpus, type CorpusDocument, loadCorpus, loadNeighbors, type Source, SOURCES, trackKey,
@@ -80,17 +80,23 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
     layoutPending = false;
 
     private layoutRunner: WordCloudLayoutRunner | null = null;
+    private stopLayoutReaction: IReactionDisposer | null = null;
+    // The loader disposes a load it abandons, possibly while asyncInitialize is still fetching; the worker must not
+    // start after that.
+    private disposed = false;
     // relayout() bumps the counter (observable, so the layout reaction re-runs) and sets startFresh (not observable),
     // which that next run reads once to ignore the previous positions.
     private relayoutCounter = 0;
     private startFresh = false;
 
     constructor() {
-        makeAutoObservable<this, "layoutRunner" | "startFresh">(this, {
+        makeAutoObservable<this, "layoutRunner" | "stopLayoutReaction" | "disposed" | "startFresh">(this, {
             corpus: observable.ref,
             similarities: observable.ref,
             placedWords: observable.ref,
             layoutRunner: false,
+            stopLayoutReaction: false,
+            disposed: false,
             startFresh: false,
         });
     }
@@ -126,7 +132,9 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
                 this.corpus = corpus;
                 this.similarities = indexSimilarities(neighbors);
             });
-            this.startLayoutWorker();
+            if (!this.disposed) {
+                this.startLayoutWorker();
+            }
         } catch (error) {
             runInAction(() => {
                 this.loadError = String(error);
@@ -154,14 +162,28 @@ export class SemanticWordCloudGlobalContext implements GlobalContext {
         };
     }
 
-    // The runner's worker lives as long as the page: GlobalContext has no teardown hook, so switching scenarios
-    // leaves it idle.
+    dispose(): void {
+        this.disposed = true;
+        this.stopLayoutReaction?.();
+        this.stopLayoutReaction = null;
+        this.layoutRunner?.dispose();
+        this.layoutRunner = null;
+    }
+
     private startLayoutWorker(): void {
-        this.layoutRunner = new WordCloudLayoutRunner(placed => runInAction(() => {
-            this.placedWords = placed;
-            this.layoutPending = false;
-        }));
-        reaction(
+        this.layoutRunner = new WordCloudLayoutRunner(
+            placed => runInAction(() => {
+                this.placedWords = placed;
+                this.layoutPending = false;
+            }),
+            message => {
+                console.error("Word cloud layout failed:", message);
+                runInAction(() => {
+                    this.layoutPending = false;
+                });
+            },
+        );
+        this.stopLayoutReaction = reaction(
             () => ({ words: this.measuredWords, links: this.layoutLinks, aspectRatio: this.aspectRatio,
                      linkStrength: this.linkStrength, relayout: this.relayoutCounter }),
             ({ words, links, aspectRatio, linkStrength }) => {

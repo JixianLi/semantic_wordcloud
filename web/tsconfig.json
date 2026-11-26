@@ -17,5 +17,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vendor/webuvisbox/src"]
+  "include": ["src", "vendor/webuvisbox/src"],
+  "exclude": ["vendor/webuvisbox/src/**/*.test.ts", "vendor/webuvisbox/src/**/*.test.tsx"]
 }
