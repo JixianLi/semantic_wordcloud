@@ -1,0 +1,1 @@
+import{n as e}from"./TerrainEnsemble-oTszlmPZ.js";import{Ar as t}from"./three.core-BTFibstQ.js";function n(n,r){let i=new t(2,2,128,128);i.rotateX(-Math.PI/2);let a=i.getAttribute(`position`);for(let t=0;t<a.count;t++){let{x:i,z:o}=e(t);a.setXYZ(t,i,n[t]*r,o)}return i.computeVertexNormals(),i}export{n as t};

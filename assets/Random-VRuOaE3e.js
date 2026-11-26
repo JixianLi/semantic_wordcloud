@@ -1,0 +1,1 @@
+function e(e){let t=e>>>0;return()=>{t=t+1831565813>>>0;let e=Math.imul(t^t>>>15,t|1);return e^=e+Math.imul(e^e>>>7,e|61),((e^e>>>14)>>>0)/4294967296}}function t(e){return()=>Math.sqrt(-2*Math.log(1-e()))*Math.cos(2*Math.PI*e())}export{t as n,e as t};
